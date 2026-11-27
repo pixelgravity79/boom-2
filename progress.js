@@ -47,7 +47,7 @@
   /* Achievements. `run` checks receive the finished run summary and the save after stats were applied. */
   const ACHIEVEMENTS = [
     { id: 'liftoff', icon: '\u{1F6EB}', title: 'Liftoff', desc: 'Finish your first flight.', run: (r) => true },
-    { id: 'gravity', icon: '\u{1FAA8}', title: 'Speedrun to the Floor', desc: 'Crash without flapping even once.', run: (r) => r.flaps === 0 },
+    { id: 'gravity', icon: '\u{1FAA8}', title: 'Speedrun to the Floor', desc: 'Take off, then crash without flapping again.', run: (r) => r.flaps === 0 },
     { id: 'ten', icon: '\u{1F51F}', title: 'Double Digits', desc: 'Score 10 in one flight.', run: (r) => r.score >= 10 },
     { id: 'twentyfive', icon: '\u{1F31F}', title: 'Quarter Century', desc: 'Score 25 in one flight.', run: (r) => r.score >= 25 },
     { id: 'night', icon: '\u{1F989}', title: 'Night Owl', desc: 'Fly until the stars come out (pass 30 pipes).', run: (r) => r.passed >= 30 },
@@ -182,6 +182,9 @@
     return ACH_BY_ID[id];
   }
 
+  /** Flaps the player chose to make. The tap that starts a flight flaps on tick 0: that's the takeoff, not a flap. */
+  function playerFlaps(flapTicks) { return (flapTicks || []).filter((t) => t > 0).length; }
+
   function earnedCount(save) { return Object.keys(save.achievements).length; }
   function perkUnlocked(save, perkId) { const p = PERKS.find((x) => x.id === perkId); return !!p && earnedCount(save) >= p.needs; }
 
@@ -240,5 +243,5 @@
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
   }
 
-  return { SAVE_VERSION, CHARACTERS, CHAR_BY_ID, ACHIEVEMENTS, ACH_BY_ID, PERKS, defaultSave, sanitize, merge, migrateLegacy, nextUnlock, liveUnlock, grant, earnedCount, perkUnlocked, applyRun, quip, today };
+  return { SAVE_VERSION, CHARACTERS, CHAR_BY_ID, ACHIEVEMENTS, ACH_BY_ID, PERKS, defaultSave, sanitize, merge, migrateLegacy, nextUnlock, liveUnlock, grant, playerFlaps, earnedCount, perkUnlocked, applyRun, quip, today };
 });

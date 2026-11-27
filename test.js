@@ -274,6 +274,23 @@ test('merge of device + cloud copies keeps the best of both', () => {
   assert.deepEqual(P.merge(m, m), m, 'merge is idempotent');
 });
 
+test('Speedrun to the Floor is earnable: the takeoff tap is not a flap', () => {
+  assert.equal(P.playerFlaps([0]), 0);
+  assert.equal(P.playerFlaps([0, 30, 61]), 2);
+  assert.equal(P.playerFlaps([]), 0);
+  // a real flight: tap to take off (tick-0 flap), then never touch the screen again
+  const s = E.create(3);
+  E.step(s, true);
+  while (!s.dead) E.step(s, false);
+  assert.equal(s.deathCause, 'ground');
+  const save = P.defaultSave();
+  const info = P.applyRun(save, runOf({ score: s.score, flaps: P.playerFlaps(s.flapTicks), deathCause: s.deathCause, ticks: s.tick, flapTicks: s.flapTicks }));
+  assert.ok(info.achievements.some((a) => a.id === 'gravity'));
+  // one extra flap after takeoff means no badge
+  const t = E.create(3); E.step(t, true); for (let i = 0; i < 10; i++) E.step(t, false); E.step(t, true); while (!t.dead) E.step(t, false);
+  assert.equal(P.playerFlaps(t.flapTicks), 1);
+});
+
 test('quips cover every outcome', () => {
   const s = P.defaultSave();
   const cases = [runOf({ flaps: 0 }), runOf({ deathCause: 'pipe-top' }), runOf({ deathCause: 'pipe-bottom', character: 'legend' }), runOf({ score: 49 })];

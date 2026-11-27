@@ -157,6 +157,15 @@ const tapStage = async (page) => { const b = await page.locator('#stage').boundi
       ok(earned >= 4, earned + ' earned');
       await page.click('#sheetClose');
     });
+    await check('Speedrun to the Floor: take off, never tap again, earn the badge', async () => {
+      await page.evaluate(() => document.getElementById('homeBtn').click());
+      ok(!(await page.evaluate(() => FlappyLab.save().achievements.gravity)), 'not earned yet');
+      await page.click('#playBtn', { force: true });
+      await tapStage(page);
+      await page.waitForFunction(() => FlappyLab.mode() === 'over', null, { timeout: 10000 });
+      ok(await page.evaluate(() => !!FlappyLab.save().achievements.gravity), 'badge granted');
+      ok((await page.textContent('#overBadges')).includes('Speedrun to the Floor'), 'listed on the game-over panel');
+    });
     await check('no script errors', async () => ok(errors.length === 0, errors.join(' | ')));
     await ctx.close();
   }
