@@ -848,7 +848,7 @@
     // record the run right away (never lose progress to a closed tab)
     const run = {
       score: s.score, passed: s.passed, mallows: s.mallows, perfects: s.perfects, bestPerfectStreak: s.bestPerfectStreak,
-      nearMisses: s.nearMisses, flaps: s.flaps, ceilingTouches: s.ceilingTouches, deathCause: cause, ticks: s.tick,
+      nearMisses: s.nearMisses, flaps: P.playerFlaps(s.flapTicks), ceilingTouches: s.ceilingTouches, deathCause: cause, ticks: s.tick,
       character: char.id, mode: runMode, date: runDate, flapTicks: s.flapTicks.slice(), shieldSaves, beatGhost,
     };
     const prevDaily = save.daily.date === runDate ? save.daily.best : 0;
