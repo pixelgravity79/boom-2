@@ -12,37 +12,53 @@
 
   const CHARACTERS = [
     {
-      id: 'razz', name: 'Razz', sprite: 'char1', unlockAt: 0, color: '#3d7bff', accent: '#9cc0ff',
+      id: 'razz', name: 'Razz', sprite: 'char1', unlockAt: 0, rarity: 1, color: '#3d7bff', accent: '#9cc0ff',
       tagline: 'Blows raspberries at gravity.', trail: 'bubbles', pitch: 1.0,
       bio: 'The original. Tongue out, zero fear, absolutely no plan.',
       quips: ['*blows a raspberry at the pipe*', 'Bleh. Again!', 'That pipe was rude first.'],
     },
     {
-      id: 'critic', name: 'Couch Critic', sprite: 'char4', unlockAt: 50, color: '#ff4fa3', accent: '#ffb3d6',
+      id: 'critic', name: 'Couch Critic', sprite: 'char4', unlockAt: 50, rarity: 2, color: '#ff4fa3', accent: '#ffb3d6',
       tagline: 'Unimpressed. Still flying.', trail: 'stars', pitch: 0.86,
       bio: 'Has rated every pipe in the forest. Average score: 2/10.',
       quips: ['I’d rate that flight a 2 out of 10.', 'Unimpressed. Again.', 'I saw that pipe. I chose violence.'],
     },
     {
-      id: 'roadtrip', name: 'Road Tripper', sprite: 'char3', unlockAt: 100, color: '#ff4b3e', accent: '#ffb0a8',
+      id: 'roadtrip', name: 'Road Tripper', sprite: 'char3', unlockAt: 100, rarity: 3, color: '#ff4b3e', accent: '#ffb0a8',
       tagline: 'Are we there yet? Are we there yet?', trail: 'puffs', pitch: 1.12,
       bio: 'Brought snacks, a plushie and 400 questions about the route.',
       quips: ['Are we there yet? (No.)', 'Who parks a pipe on the highway?', 'I need a bathroom break.'],
     },
     {
-      id: 'chill', name: 'Chill Pill', sprite: 'char2', unlockAt: 150, color: '#3fbf8f', accent: '#a9ecd2',
+      id: 'chill', name: 'Chill Pill', sprite: 'char2', unlockAt: 150, rarity: 4, color: '#3fbf8f', accent: '#a9ecd2',
       tagline: 'Has never once been in a hurry.', trail: 'notes', pitch: 0.94,
       bio: 'Flies at the speed of vibes. Pipes are just suggestions.',
       quips: ['Eh. Pipes happen.', 'I meant to do that. Probably.', 'Five more minutes…'],
     },
     {
-      id: 'legend', name: 'Golden Razz', sprite: 'char5', unlockAt: 200, color: '#ffc531', accent: '#fff0b3', legendary: true,
+      id: 'legend', name: 'Golden Razz', sprite: 'char5', unlockAt: 200, rarity: 5, color: '#ffc531', accent: '#fff0b3', legendary: true,
       tagline: 'Two hundred pipes. One crown.', trail: 'rainbow', pitch: 1.2,
       bio: 'Forged in 200 pipes of pure stubbornness. Leaves a rainbow. Obviously.',
       quips: ['Even legends bonk.', 'The crown stays on.', 'That pipe will be hearing from my lawyer.'],
     },
+    // shop fliers: bought with golden marshmallows instead of unlocked by score
+    {
+      id: 'pompom', name: 'Pom-Pom Pilot', sprite: 'char6', unlockAt: null, cost: 30, rarity: 3, color: '#14b8cc', accent: '#b5f3fa',
+      tagline: 'Dressed for a blizzard. Grinning anyway.', trail: 'snow', pitch: 1.05,
+      bio: 'Bundled up for a snowstorm and smiling like it\u2019s the first day of camp.',
+      quips: ['Still smiling. Always smiling.', 'That pipe was colder than me.', 'The hat stayed on. I call that a win.'],
+    },
+    {
+      id: 'fairway', name: 'Fairway Flier', sprite: 'char7', unlockAt: null, cost: 30, rarity: 3, color: '#2f6fd6', accent: '#b7d0ff',
+      tagline: 'Treats every gap like a hole-in-one.', trail: 'golf', pitch: 0.9,
+      bio: 'Zero expression, maximum focus. Has never once yelled \u201cfore\u201d in time.',
+      quips: ['Fore! (Too late.)', 'Bad lie. Very bad lie.', 'I\u2019m taking a mulligan.'],
+    },
   ];
   const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map((c) => [c.id, c]));
+  const isShop = (c) => typeof c.cost === 'number';
+  const SCORE_CHARS = CHARACTERS.filter((c) => !isShop(c));
+  const SHOP_CHARS = CHARACTERS.filter(isShop);
 
   /* Achievements. `run` checks receive the finished run summary and the save after stats were applied. */
   const ACHIEVEMENTS = [
@@ -67,6 +83,7 @@
     { id: 'daily', icon: '\u{1F4C5}', title: 'Daily Flier', desc: 'Finish a Daily Flight.', run: (r) => r.mode === 'daily' },
     { id: 'ghost', icon: '\u{1F47B}', title: 'Ghostbuster', desc: 'Beat your own ghost in a Daily Flight.', run: (r) => r.mode === 'daily' && r.beatGhost },
     { id: 'poke', icon: '\u{1F449}', title: 'Personal Space', desc: 'Poke your flier on the title screen 10 times.', event: 'poke' },
+    { id: 'shopper', icon: '\u{1F6CD}\uFE0F', title: 'Big Spender', desc: 'Buy a flier with marshmallows.', event: 'shop' },
   ];
   const ACH_BY_ID = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));
 
@@ -79,7 +96,7 @@
   function defaultSave() {
     return {
       v: SAVE_VERSION, updatedAt: 0,
-      best: 0, bestByChar: {}, legacyBest: 0,
+      best: 0, bestByChar: {}, legacyBest: 0, spent: 0,
       unlocked: ['razz'], seen: ['razz'], selected: 'razz',
       achievements: {},
       stats: { runs: 0, totalScore: 0, mallows: 0, flaps: 0, perfects: 0, nearMisses: 0, ticks: 0, pokes: 0, charRuns: {} },
@@ -99,6 +116,7 @@
     s.updatedAt = num(raw.updatedAt);
     s.best = Math.floor(num(raw.best));
     s.legacyBest = Math.floor(num(raw.legacyBest));
+    s.spent = Math.floor(num(raw.spent));
     if (raw.bestByChar && typeof raw.bestByChar === 'object') for (const k of Object.keys(raw.bestByChar)) if (CHAR_BY_ID[k]) s.bestByChar[k] = Math.floor(num(raw.bestByChar[k]));
     const ids = (a) => (Array.isArray(a) ? a.filter((id) => CHAR_BY_ID[id]) : []);
     s.unlocked = Array.from(new Set(['razz', ...ids(raw.unlocked)]));
@@ -118,7 +136,7 @@
     }
     s.pendingReveal = ids(raw.pendingReveal);
     // never lose an unlock the score already earned
-    for (const c of CHARACTERS) if (Math.max(s.best, s.legacyBest) >= c.unlockAt && !s.unlocked.includes(c.id)) { s.unlocked.push(c.id); if (!s.pendingReveal.includes(c.id)) s.pendingReveal.push(c.id); }
+    for (const c of SCORE_CHARS) if (Math.max(s.best, s.legacyBest) >= c.unlockAt && !s.unlocked.includes(c.id)) { s.unlocked.push(c.id); if (!s.pendingReveal.includes(c.id)) s.pendingReveal.push(c.id); }
     return s;
   }
 
@@ -143,6 +161,7 @@
     const m = sanitize(newer);
     m.best = Math.max(a.best, b.best);
     m.legacyBest = Math.max(a.legacyBest, b.legacyBest);
+    m.spent = Math.max(a.spent, b.spent); // spending is a counter too, so a purchase can't be undone by an older copy
     for (const k of new Set([...Object.keys(a.bestByChar), ...Object.keys(b.bestByChar)])) m.bestByChar[k] = Math.max(a.bestByChar[k] || 0, b.bestByChar[k] || 0);
     m.unlocked = Array.from(new Set([...a.unlocked, ...b.unlocked]));
     m.seen = Array.from(new Set([...a.seen, ...b.seen]));
@@ -160,13 +179,30 @@
   }
 
   function nextUnlock(save) {
-    return CHARACTERS.find((c) => !save.unlocked.includes(c.id)) || null;
+    return SCORE_CHARS.find((c) => !save.unlocked.includes(c.id)) || null;
+  }
+
+  /** Golden marshmallows in the bank: every one ever collected, minus what was spent in the shop. */
+  function wallet(save) { return Math.max(0, save.stats.mallows - save.spent); }
+
+  /** Buy a shop flier. Returns { ok, reason?, achievement? }. */
+  function buy(save, id, now) {
+    const c = CHAR_BY_ID[id];
+    if (!c || !isShop(c)) return { ok: false, reason: 'not-for-sale' };
+    if (save.unlocked.includes(id)) return { ok: false, reason: 'owned' };
+    if (wallet(save) < c.cost) return { ok: false, reason: 'funds', short: c.cost - wallet(save) };
+    save.spent += c.cost;
+    save.unlocked.push(id);
+    if (!save.pendingReveal.includes(id)) save.pendingReveal.push(id);
+    const achievement = grant(save, 'shopper', now);
+    save.updatedAt = now || Date.now();
+    return { ok: true, achievement };
   }
 
   /** Called whenever the live score changes: unlocks immediately (so a crash a frame later can't lose it). */
   function liveUnlock(save, score) {
     const fresh = [];
-    for (const c of CHARACTERS) {
+    for (const c of SCORE_CHARS) {
       if (score >= c.unlockAt && !save.unlocked.includes(c.id)) {
         save.unlocked.push(c.id);
         if (!save.pendingReveal.includes(c.id)) save.pendingReveal.push(c.id);
@@ -243,5 +279,5 @@
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
   }
 
-  return { SAVE_VERSION, CHARACTERS, CHAR_BY_ID, ACHIEVEMENTS, ACH_BY_ID, PERKS, defaultSave, sanitize, merge, migrateLegacy, nextUnlock, liveUnlock, grant, playerFlaps, earnedCount, perkUnlocked, applyRun, quip, today };
+  return { SAVE_VERSION, CHARACTERS, CHAR_BY_ID, SCORE_CHARS, SHOP_CHARS, isShop, wallet, buy, ACHIEVEMENTS, ACH_BY_ID, PERKS, defaultSave, sanitize, merge, migrateLegacy, nextUnlock, liveUnlock, grant, playerFlaps, earnedCount, perkUnlocked, applyRun, quip, today };
 });

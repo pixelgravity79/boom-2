@@ -25,6 +25,7 @@
       <div class="hud-row">
         <div class="hud-side">
           <span id="modeChip" class="chip chip-daily" hidden>Daily</span>
+          <span id="mallowChip" class="chip chip-mallow" aria-label="Marshmallows in the bank"><i class="mi"></i><b id="hudMallows">0</b></span>
           <span id="shieldChip" class="chip chip-shield" hidden aria-label="Bubble shield active"><i></i>Shield</span>
         </div>
         <div id="score" class="score" aria-live="off">0</div>
@@ -46,7 +47,7 @@
       <div class="tap-hint"><span class="hand"></span><span>Tap to flap</span></div>
       <ul class="tips">
         <li><b>Only your face counts.</b> The hair is decorative.</li>
-        <li><span class="dot mallow"></span>Golden marshmallows are <b>+1</b>.</li>
+        <li><span class="dot mallow"></span>Golden marshmallows are <b>+1</b> and buy shop fliers.</li>
         <li><span class="dot bubble"></span>Bubbles save you from <b>one</b> crash.</li>
       </ul>
     </div>
@@ -68,6 +69,7 @@
       <div class="title-bottom">
         <div class="best-row">
           <span class="chip chip-best">Best <b id="titleBest">0</b></span>
+          <span class="chip chip-mallow" aria-label="Marshmallows in the bank"><i class="mi"></i><b id="titleMallows">0</b></span>
           <button id="teaser" class="teaser" aria-label="See all fliers">
             <span class="teaser-face"><img id="teaserImg" alt=""></span>
             <span class="teaser-text"><b id="teaserName">Next flier</b><small id="teaserReq">Score 50</small></span>

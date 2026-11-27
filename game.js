@@ -136,6 +136,8 @@
       flap(ch) {
         const p = ch ? ch.pitch : 1;
         if (ch && ch.id === 'roadtrip') { tone({ type: 'square', f: 520, dur: 0.05, vol: 0.05 }); tone({ type: 'square', f: 415, dur: 0.06, vol: 0.045, delay: 0.06 }); }
+        else if (ch && ch.id === 'pompom') { [2637, 3136, 2349].forEach((f, i) => tone({ type: 'sine', f, dur: 0.07, vol: 0.035, delay: i * 0.03 })); noise({ type: 'highpass', f: 6500, dur: 0.08, vol: 0.06 }); }
+        else if (ch && ch.id === 'fairway') { tone({ type: 'sine', f: 2600, f2: 2200, dur: 0.06, vol: 0.06 }); tone({ type: 'triangle', f: 5200, dur: 0.03, vol: 0.02 }); }
         else if (ch && ch.id === 'legend') { [0, 4, 7].forEach((n, i) => tone({ type: 'triangle', f: mtof(84 + n), dur: 0.12, vol: 0.05, delay: i * 0.025 })); }
         else tone({ type: 'sine', f: 430 * p, f2: 760 * p, dur: 0.07, vol: 0.07 });
         noise({ f: 1600 * p, f2: 500, dur: 0.09, vol: 0.16, q: 0.8 });
@@ -177,6 +179,7 @@
         noise({ type: 'highpass', f: 5000, dur: 1.2, vol: 0.12, delay: big ? 0.32 : 0.26, a: 0.01 });
         if (big) tone({ type: 'sine', f: mtof(48), dur: 1.2, vol: 0.25, delay: 0.32 });
       },
+      kaching() { tone({ type: 'square', f: 988, dur: 0.06, vol: 0.05 }); tone({ type: 'square', f: 1319, dur: 0.3, vol: 0.05, delay: 0.07 }); noise({ type: 'highpass', f: 5000, dur: 0.35, vol: 0.12, delay: 0.07 }); },
       pop() { noise({ type: 'highpass', f: 2500, dur: 0.04, vol: 0.12 }); },
     };
     return S;
@@ -539,6 +542,7 @@
         case 'note': ctx.fillStyle = p.color; ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size * 0.7, p.size * 0.5, -0.4, 0, TAU); ctx.fill(); ctx.fillRect(p.x + p.size * 0.45, p.y - p.size * 2, 2, p.size * 2); ctx.fillRect(p.x + p.size * 0.45, p.y - p.size * 2, p.size * 0.9, 2.2); break;
         case 'zzz': ctx.font = `${Math.round(p.size)}px "Lilita One", sans-serif`; ctx.fillStyle = '#fff'; ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.strokeText('z', p.x, p.y); ctx.fillText('z', p.x, p.y); break;
         case 'firefly': ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha *= 0.5 + 0.5 * Math.sin(p.life * 0.15 + p.rot); ctx.drawImage(L.glow, p.x - 10, p.y - 10, 20, 20); ctx.globalCompositeOperation = 'source-over'; break;
+        case 'golf': ctx.fillStyle = '#ffffff'; ctx.strokeStyle = INK; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#b9c2d8'; for (const [dx, dy] of [[-1.5, -1], [1.4, -0.4], [0, 1.6]]) { ctx.beginPath(); ctx.arc(p.x + dx, p.y + dy, 0.8, 0, TAU); ctx.fill(); } break;
         default: ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, TAU); ctx.fill();
       }
     }
@@ -637,8 +641,8 @@
   function char0() { return P.CHAR_BY_ID[save.selected] || P.CHARACTERS[0]; }
 
   // ---------------------------------------------------------------- HUD (DOM, touched only on change)
-  const hud = { score: $('score'), pill: $('pill'), pillImg: $('pillImg'), pillLabel: $('pillLabel'), pillBar: $('pillBar'), pillNum: $('pillNum'), streak: $('streak'), shield: $('shieldChip'), mode: $('modeChip') };
-  let hudScore = -1, hudStreak = -1, hudShield = null;
+  const hud = { score: $('score'), pill: $('pill'), pillImg: $('pillImg'), pillLabel: $('pillLabel'), pillBar: $('pillBar'), pillNum: $('pillNum'), streak: $('streak'), shield: $('shieldChip'), mode: $('modeChip'), mallows: $('hudMallows'), mallowChip: $('mallowChip') };
+  let hudScore = -1, hudStreak = -1, hudShield = null, hudMallows = -1;
   function hudTarget() {
     const nxt = P.nextUnlock(save);
     if (nxt) return { label: 'Unlock ' + nxt.name, goal: nxt.unlockAt, img: spriteURL(nxt.sprite), lock: true };
@@ -646,7 +650,7 @@
   }
   let hudGoal = null;
   function hudReset() {
-    hudScore = -1; hudStreak = -1; hudShield = null;
+    hudScore = -1; hudStreak = -1; hudShield = null; hudMallows = -1;
     hudGoal = hudTarget();
     hud.pillImg.src = hudGoal.img;
     hud.pillImg.style.filter = hudGoal.lock ? '' : 'none';
@@ -671,6 +675,11 @@
       else hud.streak.hidden = true;
     }
     if (s.shield !== hudShield) { hudShield = s.shield; hud.shield.hidden = !s.shield; }
+    if (s.mallows !== hudMallows) {
+      const up = hudMallows >= 0; hudMallows = s.mallows;
+      hud.mallows.textContent = P.wallet(save) + s.mallows;
+      if (up) { hud.mallowChip.classList.remove('pop'); void hud.mallowChip.offsetWidth; hud.mallowChip.classList.add('pop'); }
+    }
   }
 
   // ---------------------------------------------------------------- screens
@@ -694,12 +703,17 @@
   function refreshTitle() {
     char = char0();
     $('titleBest').textContent = save.best;
-    const nxt = P.nextUnlock(save);
+    $('titleMallows').textContent = P.wallet(save);
+    const nxt = P.nextUnlock(save), shopNext = P.SHOP_CHARS.find((c) => !save.unlocked.includes(c.id));
     const face = $('teaser').querySelector('.teaser-face');
     if (nxt) {
       $('teaserImg').src = spriteURL(nxt.sprite); face.classList.remove('open');
       $('teaserName').textContent = 'Next: ' + (save.best >= nxt.unlockAt - 10 ? nxt.name : '???');
       $('teaserReq').textContent = 'Score ' + nxt.unlockAt + ' in one flight';
+    } else if (shopNext) {
+      $('teaserImg').src = spriteURL(shopNext.sprite); face.classList.add('open');
+      $('teaserName').textContent = 'Shop: ' + shopNext.name;
+      $('teaserReq').textContent = P.wallet(save) >= shopNext.cost ? 'You can buy this now!' : 'Costs ' + shopNext.cost + ' marshmallows';
     } else {
       $('teaserImg').src = spriteURL('char5'); face.classList.add('open');
       $('teaserName').textContent = 'All fliers unlocked!';
@@ -851,8 +865,9 @@
       nearMisses: s.nearMisses, flaps: P.playerFlaps(s.flapTicks), ceilingTouches: s.ceilingTouches, deathCause: cause, ticks: s.tick,
       character: char.id, mode: runMode, date: runDate, flapTicks: s.flapTicks.slice(), shieldSaves, beatGhost,
     };
-    const prevDaily = save.daily.date === runDate ? save.daily.best : 0;
+    const prevDaily = save.daily.date === runDate ? save.daily.best : 0, bankBefore = P.wallet(save);
     runInfo = P.applyRun(save, run);
+    runInfo.bankBefore = bankBefore;
     runInfo.prevDaily = prevDaily;
     lastRun = run;
     persist();
@@ -878,7 +893,8 @@
     const secs = Math.round(run.ticks / 60), mm = Math.floor(secs / 60), ss = String(secs % 60).padStart(2, '0');
     const stats = [mm + ':' + ss + ' airtime'];
     if (run.perfects) stats.push(run.perfects + ' perfect');
-    if (run.mallows) stats.push(run.mallows + (run.mallows === 1 ? ' marshmallow' : ' marshmallows'));
+    const bank = P.wallet(save), forSale = P.SHOP_CHARS.filter((c) => !save.unlocked.includes(c.id));
+    if (run.mallows || forSale.length) stats.push('<i class="mi"></i>' + (run.mallows ? '+' + run.mallows + ' \u00b7 ' : '') + bank + ' banked');
     if (run.nearMisses) stats.push(run.nearMisses + (run.nearMisses === 1 ? ' close shave' : ' close shaves'));
     if (run.shieldSaves) stats.push('saved by a bubble');
     $('overStats').innerHTML = stats.map((t) => '<span>' + t + '</span>').join('');
@@ -886,7 +902,11 @@
     ob.hidden = !info.achievements.length;
     ob.innerHTML = info.achievements.map((a) => '<span><i>' + a.icon + '</i>' + a.title + '</span>').join('');
     const nxt = P.nextUnlock(save);
-    $('overNext').innerHTML = nxt ? 'Next flier at <b>' + nxt.unlockAt + '</b> · ' + Math.max(0, nxt.unlockAt - save.best) + ' to go' : daily ? 'Daily Flight resets at midnight. Same course for everyone.' : 'Every flier unlocked. <b>Legend.</b>';
+    const cheapest = forSale.length ? forSale.reduce((a, b) => (b.cost < a.cost ? b : a)) : null;
+    $('overNext').innerHTML = nxt ? 'Next flier at <b>' + nxt.unlockAt + '</b> · ' + Math.max(0, nxt.unlockAt - save.best) + ' to go'
+      : cheapest ? (bank >= cheapest.cost ? '<b>Enough marshmallows for ' + cheapest.name + '!</b>' : cheapest.name + ' costs ' + cheapest.cost + ' marshmallows')
+      : daily ? 'Daily Flight resets at midnight. Same course for everyone.' : 'Every flier unlocked. <b>Legend.</b>';
+    for (const c of forSale) if (info.bankBefore < c.cost && bank >= c.cost) { toast('Enough marshmallows!', 'Buy ' + c.name + ' in Fliers', '\u{1F6CD}\uFE0F'); sessionNew.chars.add(c.id); }
     // quip, with a pep talk if the last few runs were rough
     let q = P.quip(run, save, info);
     if (recentScores.length >= 5 && recentScores.slice(-5).every((v) => v < 3)) q = ['Deep breaths. Pipes can smell fear.', 'Tiny taps. Trust the flap.', 'Try tapping a little later. Gravity is your friend.'][Math.floor(Math.random() * 3)];
@@ -896,10 +916,12 @@
     info.perks.forEach((p) => toast('Perk unlocked', p.title + ' (Settings)', '✨'));
     // the flier springs back up, dizzy, and "says" the quip from the space above the bubble
     requestAnimationFrame(() => {
-      const sr = stage.getBoundingClientRect(), b = document.querySelector('.bubble-quip').getBoundingClientRect(), tip = $('overTip').getBoundingClientRect();
-      const topY = toWorldY(tip.bottom - sr.top), botY = toWorldY(b.top - sr.top);
-      overAnchor.y = Math.max(topY + 30, (topY + botY) / 2 + 6);
-      overAnchor.scale = clamp((botY - topY) / 120, 0.8, 1.45);
+      // offsetTop ignores the slide-in transform, so this is where the bubble comes to rest
+      const b = document.querySelector('.bubble-quip'), tip = $('overTip');
+      const topY = toWorldY(tip.offsetTop + tip.offsetHeight), botY = toWorldY(b.offsetTop);
+      // sit just above the speech bubble, as big as the free space allows
+      overAnchor.scale = clamp((botY - topY - 16) / 82, 0.6, 1.45);
+      overAnchor.y = botY - 37 * overAnchor.scale - 6;
     });
     if (save.pendingReveal.length) setTimeout(() => { if (mode === 'over') runReveals(); }, 700);
   }
@@ -926,6 +948,8 @@
       if (tr === 'bubbles') part('bubble', C.x - 20, s.y + rand(-6, 10), { vx: -s.speed * 0.6, vy: rand(-0.8, -0.3), life: 40, size: rand(3, 6), alpha: 0.9 });
       else if (tr === 'stars') part('star', C.x - 20, s.y + rand(-10, 10), { vx: -s.speed * 0.7, vy: rand(-0.4, 0.4), life: 30, size: rand(3, 5), color: '#ff9fd0', vr: 0.1 });
       else if (tr === 'notes' && s.tick % 15 === 0) part('note', C.x - 24, s.y + rand(-8, 6), { vx: -s.speed * 0.6, vy: -0.6, life: 50, size: 5, color: '#2ea37a' });
+      else if (tr === 'snow') part('flake', C.x - 20, s.y + rand(-16, 6), { vx: -s.speed * 0.5, vy: rand(0.3, 0.9), life: 55, size: rand(1.6, 3.2), color: '#ffffff', alpha: 0.95 });
+      else if (tr === 'golf' && s.tick % 20 === 0) part('golf', C.x - 22, s.y + 10, { vx: -s.speed * 0.4 - 1.5, vy: rand(-2.6, -1.2), g: 0.16, life: 50, size: 4.5 });
       else if (tr === 'puffs' && s.tick % 10 === 0) part('puff', C.x - 26, s.y + 16, { vx: -s.speed * 0.8, vy: 0.2, life: 30, size: 4, grow: 0.25, color: '#dcdce8', alpha: 0.6 });
     }
     if (tr === 'rainbow') { trail.push({ x: C.x - 14, y: s.y }); if (trail.length > 26) trail.shift(); for (const t of trail) t.x -= s.speed; }
@@ -1444,11 +1468,12 @@
 
   // ---------------------------------------------------------------- unlock ceremony
   function cardHTML(ch, o = {}) {
-    const n = P.CHARACTERS.indexOf(ch) + 1, stars = '★'.repeat(n) + '☆'.repeat(5 - n);
+    const n = P.CHARACTERS.indexOf(ch) + 1, r = ch.rarity || 1, stars = '★'.repeat(r) + '☆'.repeat(5 - r), tot = String(P.CHARACTERS.length).padStart(2, '0');
     const lock = '<span class="tc-lock"><svg viewBox="0 0 24 24"><path d="M7 10V8a5 5 0 0 1 10 0v2h1.5v11h-13V10H7zm2.5 0h5V8a2.5 2.5 0 0 0-5 0v2z"/></svg></span>';
     return '<div class="tcard' + (o.locked ? ' locked' : '') + (ch.legendary ? ' legend' : '') + (o.mystery ? ' mystery' : '') + (o.selected ? ' selected' : '') + '" style="--cc:' + ch.color + '">' +
-      '<span class="tc-stars">' + stars + '</span><span class="tc-no">' + String(n).padStart(2, '0') + '/05</span>' +
+      '<span class="tc-stars">' + stars + '</span><span class="tc-no">' + String(n).padStart(2, '0') + '/' + tot + '</span>' +
       '<img src="' + spriteURL(ch.sprite) + '" alt="">' + (o.locked ? lock : '') + (o.selected ? '<span class="tc-sel">Flying</span>' : '') +
+      (o.price ? '<span class="tc-price"><i class="mi"></i>' + ch.cost + '</span>' : '') +
       '<span class="tc-name">' + (o.locked ? '? ? ?' : ch.name) + '</span></div>';
   }
   const Reveal = (() => {
@@ -1463,7 +1488,7 @@
       if (!id) { close(); return; }
       cur = P.CHAR_BY_ID[id];
       el.hidden = false; el.classList.remove('lit');
-      $('revealKicker').textContent = cur.legendary ? 'Legendary flier unlocked!' : 'New flier unlocked!';
+      $('revealKicker').textContent = cur.legendary ? 'Legendary flier unlocked!' : P.isShop(cur) ? 'Flier purchased!' : 'New flier unlocked!';
       $('revealKicker').style.animation = 'none'; void el.offsetWidth; $('revealKicker').style.animation = '';
       const wrap = $('revealCard');
       wrap.innerHTML = cardHTML(cur, { mystery: true });
@@ -1490,7 +1515,7 @@
       t.innerHTML = '';
       const h = document.createElement('h3'); h.textContent = cur.name;
       const p = document.createElement('p'); p.textContent = cur.bio;
-      const q = document.createElement('span'); q.className = 'req'; q.textContent = cur.unlockAt ? 'Unlocked at ' + cur.unlockAt + ' points' : 'Starter';
+      const q = document.createElement('span'); q.className = 'req'; q.textContent = P.isShop(cur) ? 'Bought for ' + cur.cost + ' marshmallows' : cur.unlockAt ? 'Unlocked at ' + cur.unlockAt + ' points' : 'Starter';
       t.append(h, p, q);
       $('revealBtns').hidden = false; $('revealSkip').hidden = true;
       if (!save.seen.includes(cur.id)) save.seen.push(cur.id);
@@ -1536,24 +1561,32 @@
   $('sheetClose').addEventListener('click', () => { Sound.click(); closeSheet(); });
   $('sheet').addEventListener('pointerdown', (e) => { if (e.target === $('sheet')) closeSheet(); });
 
-  function charsHTML() {
-    const sel = save.selected;
-    let h = '<p class="sheet-sub">A new flier unlocks every 50 points in a single flight. Your best: <b>' + save.best + '</b></p><div class="cards">';
-    for (const ch of P.CHARACTERS) {
-      const locked = !save.unlocked.includes(ch.id), isSel = ch.id === sel;
-      h += '<div class="cslot' + (ch.legendary ? ' wide' : '') + '" style="position:relative">';
-      if (sessionNew.chars.has(ch.id)) h += '<span class="new-tag">New!</span>';
-      h += '<button class="tcard-btn" data-char="' + ch.id + '" style="all:unset;display:block;cursor:pointer" aria-label="' + (locked ? 'Locked flier, score ' + ch.unlockAt : ch.name) + '">' + cardHTML(ch, { locked, selected: isSel }) + '</button>';
-      if (locked) {
-        const pct = Math.min(100, (save.best / ch.unlockAt) * 100);
-        h += '<div class="cinfo">Score <b>' + ch.unlockAt + '</b> in one flight<div class="cbar"><i style="width:' + pct + '%"></i></div></div>';
-      } else {
-        h += '<div class="cinfo">' + ch.tagline + '<br>Best: <b>' + (save.bestByChar[ch.id] || 0) + '</b></div>';
-        h += '<button class="btn' + (isSel ? ' on' : '') + '" data-pick="' + ch.id + '">' + (isSel ? 'Flying' : 'Fly') + '</button>';
-      }
-      h += '</div>';
+  function slotHTML(ch) {
+    const owned = save.unlocked.includes(ch.id), isSel = ch.id === save.selected, shop = P.isShop(ch);
+    const locked = !owned && !shop; // shop fliers are shown in full: you get to see what you're buying
+    let h = '<div class="cslot' + (ch.legendary ? ' wide' : '') + '" style="position:relative">';
+    if (sessionNew.chars.has(ch.id)) h += '<span class="new-tag">New!</span>';
+    const label = owned ? ch.name : shop ? ch.name + ', costs ' + ch.cost + ' marshmallows' : 'Locked flier, score ' + ch.unlockAt;
+    h += '<button class="tcard-btn" data-char="' + ch.id + '" style="all:unset;display:block;cursor:pointer" aria-label="' + label + '">' + cardHTML(ch, { locked, selected: isSel, price: shop && !owned }) + '</button>';
+    if (owned) {
+      h += '<div class="cinfo">' + ch.tagline + '<br>Best: <b>' + (save.bestByChar[ch.id] || 0) + '</b></div>';
+      h += '<button class="btn' + (isSel ? ' on' : '') + '" data-pick="' + ch.id + '">' + (isSel ? 'Flying' : 'Fly') + '</button>';
+    } else if (shop) {
+      const bank = P.wallet(save), pct = Math.min(100, (bank / ch.cost) * 100);
+      h += '<div class="cinfo">' + ch.tagline + '<div class="cbar"><i style="width:' + pct + '%"></i></div></div>';
+      h += bank >= ch.cost ? '<button class="btn buy" data-buy="' + ch.id + '">Buy \u00b7 <i class="mi"></i>' + ch.cost + '</button>' : '<button class="btn buy" disabled>Need ' + (ch.cost - bank) + ' more</button>';
+    } else {
+      const pct = Math.min(100, (save.best / ch.unlockAt) * 100);
+      h += '<div class="cinfo">Score <b>' + ch.unlockAt + '</b> in one flight<div class="cbar"><i style="width:' + pct + '%"></i></div></div>';
     }
     return h + '</div>';
+  }
+  function charsHTML() {
+    let h = '<p class="sheet-sub">A new flier unlocks every 50 points in a single flight. Your best: <b>' + save.best + '</b></p>';
+    h += '<div class="cards">' + P.SCORE_CHARS.map(slotHTML).join('') + '</div>';
+    h += '<div class="shop-head"><h3>Marshmallow shop</h3><span class="chip chip-mallow"><i class="mi"></i><b>' + P.wallet(save) + '</b></span></div>';
+    h += '<p class="sheet-sub">Every golden marshmallow you grab goes in the bank. Spend them here.</p>';
+    return h + '<div class="cards">' + P.SHOP_CHARS.map(slotHTML).join('') + '</div>';
   }
   function badgesHTML() {
     const n = P.earnedCount(save), tot = P.ACHIEVEMENTS.length;
@@ -1576,7 +1609,7 @@
     h += '<div class="set-box">';
     for (const p of P.PERKS) { const ok = P.perkUnlocked(save, p.id); h += '<label class="tog' + (ok ? '' : ' locked') + '"><input type="checkbox" data-set="' + p.id + '"' + (save.settings[p.id] && ok ? ' checked' : '') + (ok ? '' : ' disabled') + '><span>' + p.title + '<small>' + (ok ? p.desc : 'Earn ' + p.needs + ' badges to unlock') + '</small></span></label>'; }
     h += '<label class="tog"><input type="checkbox" data-fps' + (fpsShow ? ' checked' : '') + '><span>Show FPS<small>Frame-rate meter for the curious</small></span></label></div>';
-    h += '<h3 class="set-h">How to play</h3><p class="about">Tap, click or press <b>Space</b> to flap. Fly through the gaps. <b>Only your face counts</b> for crashes; the hair is decorative. Golden marshmallows are <b>+1</b>, bubbles save you from one crash, bobbing teal pipes move, and purple chompers bite. A new flier unlocks every <b>50 points</b>. <b>Daily Flight</b> is the same course for everyone each day, with a ghost of your best try.</p>';
+    h += '<h3 class="set-h">How to play</h3><p class="about">Tap, click or press <b>Space</b> to flap. Fly through the gaps. <b>Only your face counts</b> for crashes; the hair is decorative. Golden marshmallows are <b>+1</b> and go in your bank to buy shop fliers, bubbles save you from one crash, bobbing teal pipes move, and purple chompers bite. A new flier unlocks every <b>50 points</b>. <b>Daily Flight</b> is the same course for everyone each day, with a ghost of your best try.</p>';
     h += '<h3 class="set-h">Your progress</h3><p class="about">' + save.stats.runs + ' flights · ' + save.stats.totalScore + ' total points · ' + save.stats.mallows + ' marshmallows · ' + Math.round(save.stats.ticks / 3600) + ' min airborne. Saved on this device' + (Cloud.ref ? ' and to your Claude account' : '') + '.</p>';
     h += '<div class="danger-row"><button class="btn btn-danger" id="resetBtn">Reset progress</button></div>';
     return h;
@@ -1604,6 +1637,21 @@
         save = P.sanitize(null); persist(); onSaveReplaced(); closeSheet(); toast('Progress reset', 'Fresh start!', '\u{1F9F9}');
       }
       else { b.dataset.armed = '1'; b.textContent = 'Tap again to erase everything'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'Reset progress'; } }, 3500); }
+      return;
+    }
+    const buyBtn = e.target.closest('[data-buy]');
+    if (buyBtn) {
+      if (!buyBtn.dataset.armed) {
+        buyBtn.dataset.armed = '1'; buyBtn.textContent = 'Tap again to buy'; Sound.click();
+        setTimeout(() => { if (buyBtn.isConnected && buyBtn.dataset.armed) $('sheetBody').innerHTML = charsHTML(); }, 3500);
+        return;
+      }
+      const bid = buyBtn.dataset.buy, res = P.buy(save, bid);
+      if (!res.ok) { Sound.nope(); $('sheetBody').innerHTML = charsHTML(); return; }
+      persist(); Sound.kaching(); haptic([15, 30, 15]);
+      if (res.achievement) { sessionNew.badges++; setTimeout(() => toast('Badge earned', res.achievement.title, res.achievement.icon), 300); }
+      closeSheet();
+      Reveal.open([bid], () => { if (mode === 'title') refreshTitle(); });
       return;
     }
     const id = (pick && pick.dataset.pick) || (card && card.dataset.char);
