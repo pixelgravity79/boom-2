@@ -1,0 +1,16 @@
+{
+  "name": "flappy-fellas",
+  "version": "2.0.0",
+  "private": true,
+  "description": "A summer-camp flappy game starring real faces.",
+  "scripts": {
+    "test": "node test.js",
+    "test:e2e": "node tests/e2e.js",
+    "build": "node build.js",
+    "test:dist": "node build.js && node tests/e2e.js dist",
+    "start": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}
