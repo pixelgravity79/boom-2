@@ -4,6 +4,7 @@
     python tools/make_character.py photo.jpg assets/char6.webp
     python tools/make_character.py photo.jpg assets/char6.webp --cut 0.85 --rx 1.4      # tighter hair crop
     python tools/make_character.py assets-src/char1.png assets/char5.webp --gold          # golden variant of a sprite
+    python tools/make_character.py cap.jpg assets/char7.webp --hat                         # keep a hat or cap
 
 Pipeline: BiRefNet-portrait matting (fine hair edges) x MediaPipe multiclass segmentation (hair / face / glasses
 vs clothes) -> keep head, hair, glasses and a short neck, fade long hair out in a soft ellipse -> colour grade ->
@@ -51,6 +52,9 @@ def cutout(im, A, C, o):
     nd = ((xx - fcx) / (.30 * fw)) ** 2 + ((yy - fy1 + .06 * fh) / (o.neck * fh + .06 * fh)) ** 2
     neck = np.clip((1 - nd) / .25, 0, 1) * (yy > fy0 + .5 * fh)
     keep = hair + face + others * glasses + body * neck + (A > .5) * neck * .8
+    if o.hat:  # above the face, trust the person matte: that's the hat (beanies and caps are often 'background' to the segmenter)
+        hat = ((xx > fx0 - o.hat_w * fw) & (xx < fx1 + o.hat_w * fw) & (yy > fy0 - o.hat_h * fh) & (yy < fy0 + .3 * fh)).astype(np.float32)
+        keep = keep + (A > .35) * hat * (1 - clothes)
     keep = cv2.GaussianBlur(np.clip(keep * 1.25, 0, 1) * (1 - np.clip(clothes * 1.6 - .2, 0, 1)), (0, 0), 3)
     ecx = fcx + o.cx_off * fw
     d = ((xx - ecx) / (o.rx * fw)) ** 2 + (np.maximum(yy - fcy, 0) / (o.cut * fh)) ** 2 + (np.maximum(fcy - yy, 0) / (o.ry_top * fh)) ** 2
@@ -114,6 +118,9 @@ if __name__ == '__main__':
     ap.add_argument('--cx-off', type=float, default=0, help='shift the hair ellipse left/right (face widths)')
     ap.add_argument('--ry-top', type=float, default=9, help='round off hair above the face (face heights; 9 = off)')
     ap.add_argument('--neck', type=float, default=.10)
+    ap.add_argument('--hat', action='store_true', help='keep a hat or cap above the face')
+    ap.add_argument('--hat-w', type=float, default=.45, help='how far a brim may stick out sideways (face widths)')
+    ap.add_argument('--hat-h', type=float, default=1.1, help='how tall the hat may be above the face (face heights)')
     ap.add_argument('--gamma', type=float, default=1.0); ap.add_argument('--saturation', type=float, default=1.08); ap.add_argument('--contrast', type=float, default=1.06)
     ap.add_argument('--size', type=int, default=384); ap.add_argument('--cache', default=os.path.expanduser('~/.cache/flappy-fellas'))
     o = ap.parse_args()

@@ -41,6 +41,10 @@ img{-webkit-user-drag:none;user-select:none}
 .icon-btn.dark svg{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round}
 .chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-family:var(--fd);font-size:16px;color:#fff;background:var(--ink);border:2px solid #ffffff55;white-space:nowrap}
 .chip b{font-weight:400;color:var(--sun)}
+.mi{display:inline-block;flex:none;width:15px;height:12px;border-radius:4px;border:2px solid var(--ink);background:linear-gradient(#ffc94a 0 40%,#fff3cf 40%);vertical-align:-1px;margin-right:4px;box-sizing:content-box}
+.chip .mi{border-color:#ffffffaa}
+.chip-mallow b{color:#ffe7a3}
+.chip-mallow.pop{animation:pop .3s cubic-bezier(.2,1.6,.4,1)}
 .panel{background:var(--cream);border:3px solid var(--ink);border-radius:26px;box-shadow:0 8px 0 var(--ink);padding:20px;width:100%;max-width:360px}
 .panel h2{margin:0 0 14px;font:28px/1.05 var(--fd);text-align:center;color:var(--ink)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
@@ -153,7 +157,7 @@ img{-webkit-user-drag:none;user-select:none}
 .os b{font:40px/1 var(--fd);font-weight:400;color:var(--ink);font-variant-numeric:tabular-nums}
 .new-best{position:absolute;right:-8px;top:-18px;font:15px var(--fd);background:var(--coral);color:#fff;padding:4px 10px;border-radius:999px;border:3px solid var(--ink);transform:rotate(6deg);animation:pop .4s cubic-bezier(.2,1.6,.4,1)}
 .over-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:12px}
-.over-stats span{font:800 13px var(--ft);background:#1d14420f;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.over-stats span{font:800 13px var(--ft);background:#1d14420f;border-radius:999px;padding:4px 10px;white-space:nowrap;display:inline-flex;align-items:center}
 .over-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
 .over-badges span{display:inline-flex;align-items:center;gap:5px;font:800 13px var(--ft);background:var(--sun);border:2px solid var(--ink);border-radius:999px;padding:3px 10px 3px 4px}
 .over-badges span i{font-style:normal;font-size:16px}
@@ -200,6 +204,12 @@ img{-webkit-user-drag:none;user-select:none}
 .cbar i{display:block;height:100%;background:linear-gradient(90deg,var(--sun),#ff8a1f)}
 .cslot .btn{min-height:44px;font-size:17px;padding:6px 10px;box-shadow:0 4px 0 var(--ink)}
 .cslot .btn.on{background:var(--mint)}
+.tcard .tc-price{position:absolute;left:50%;bottom:44px;transform:translateX(-50%) rotate(-3deg);display:flex;align-items:center;font:17px var(--fd);background:var(--sun);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:2px 10px;z-index:2;white-space:nowrap}
+.shop-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:22px 0 4px;padding-top:14px;border-top:3px dashed #1d144226}
+.shop-head h3{margin:0;font:24px var(--fd);font-weight:400}
+.cslot .btn.buy{background:linear-gradient(#ffe878,var(--sun) 45%,var(--sun2))}
+.btn:disabled{opacity:.55;cursor:default;box-shadow:0 4px 0 var(--ink)}
+.btn:disabled:active{transform:none}
 .new-tag{position:absolute;top:30px;right:-4px;z-index:3;font:13px var(--fd);background:var(--coral);color:#fff;border:2px solid var(--ink);border-radius:8px;padding:2px 7px;transform:rotate(8deg)}
 
 /* badges */

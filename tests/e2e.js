@@ -139,7 +139,8 @@ const tapStage = async (page) => { const b = await page.locator('#stage').boundi
       await page.evaluate(() => document.getElementById('homeBtn').click());
       await page.click('#charsBtn');
       const locked = await page.locator('#sheetBody .tcard.locked').count(), all = await page.locator('#sheetBody .tcard').count();
-      ok(all === 5 && locked === 3, all + ' cards, ' + locked + ' locked');
+      ok(all === 7 && locked === 3, all + ' cards, ' + locked + ' locked');
+      ok((await page.locator('#sheetBody .tc-price').count()) === 2, 'two shop fliers with price tags');
       ok((await page.textContent('#sheetBody')).includes('Score 100 in one flight'), 'requirement text');
       await page.click('#sheetClose');
     });
@@ -191,6 +192,42 @@ const tapStage = async (page) => { const b = await page.locator('#stage').boundi
       ok(d.best >= 6 && d.ghost.length > 0, JSON.stringify({ best: d.best, ghost: d.ghost.length }));
       await page.click('#againBtn');
       ok(await page.isVisible('#modeChip'), 'daily chip in HUD');
+    });
+    await check('no script errors', async () => ok(errors.length === 0, errors.join(' | ')));
+    await ctx.close();
+  }
+  console.log('\nMarshmallow shop');
+  {
+    const { ctx, page, errors } = await openGame(browser, url, devices['Pixel 7'], () => { if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', 1); localStorage.setItem('flappy-fellas-save-v2', JSON.stringify({ best: 12, stats: { runs: 9, mallows: 41 } })); } });
+    await check('bank shows on the title screen', async () => ok((await page.textContent('#titleMallows')) === '41', await page.textContent('#titleMallows')));
+    await check('buy Pom-Pom Pilot (tap twice), reveal plays, bank drops to 11', async () => {
+      await page.click('#charsBtn');
+      await page.click('[data-buy="pompom"]');
+      ok((await page.textContent('[data-buy="pompom"]')).includes('Tap again'), 'asks to confirm');
+      await page.click('[data-buy="pompom"]');
+      await page.waitForSelector('#reveal:not([hidden])', { timeout: 3000 });
+      ok((await page.textContent('#revealKicker')).includes('purchased'), 'purchase kicker');
+      await page.locator('#reveal').click({ position: { x: 20, y: 20 } });
+      await page.waitForSelector('#revealBtns:not([hidden])', { timeout: 3000 });
+      ok((await page.textContent('#revealText h3')) === 'Pom-Pom Pilot', 'name');
+      await page.click('#revealUse');
+      const s = await page.evaluate(() => FlappyLab.save());
+      ok(s.selected === 'pompom' && s.unlocked.includes('pompom') && s.spent === 30 && !!s.achievements.shopper, JSON.stringify({ sel: s.selected, spent: s.spent }));
+      ok((await page.textContent('#titleMallows')) === '11', 'bank ' + (await page.textContent('#titleMallows')));
+    });
+    await check('Fairway Flier is not affordable yet and says how many more', async () => {
+      await page.click('#charsBtn');
+      const t = await page.textContent('#sheetBody .btn.buy[disabled]');
+      ok(/Need 19 more/.test(t), t);
+      await page.click('#sheetClose');
+    });
+    await check('the purchase survives a reload and the new flier can fly', async () => {
+      await page.reload();
+      await page.waitForFunction(() => window.FlappyLab && FlappyLab.mode() === 'title');
+      ok((await page.evaluate(() => FlappyLab.save().selected)) === 'pompom', 'still selected');
+      await page.click('#playBtn', { force: true });
+      await tapStage(page);
+      ok((await page.evaluate(() => FlappyLab.live().character)) === 'pompom', 'flying as pompom');
     });
     await check('no script errors', async () => ok(errors.length === 0, errors.join(' | ')));
     await ctx.close();

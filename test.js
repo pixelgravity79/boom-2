@@ -190,7 +190,8 @@ test('a new flier unlocks at 50, 100, 150 and the legend at 200', () => {
   assert.deepEqual(P.liveUnlock(s, 200).map((c) => c.id), ['legend']);
   assert.deepEqual(s.pendingReveal, ['critic', 'roadtrip', 'chill', 'legend'], 'each gets a reveal ceremony');
   assert.equal(P.nextUnlock(s), null);
-  assert.deepEqual(P.CHARACTERS.map((c) => c.unlockAt), [0, 50, 100, 150, 200]);
+  assert.deepEqual(P.SCORE_CHARS.map((c) => c.unlockAt), [0, 50, 100, 150, 200]);
+  assert.ok(!P.liveUnlock(s, 9999).length && !s.unlocked.includes('pompom'), 'score never unlocks shop fliers');
 });
 
 test('applyRun: best, per-flier best, stats, achievements, so-close', () => {
@@ -289,6 +290,31 @@ test('Speedrun to the Floor is earnable: the takeoff tap is not a flap', () => {
   // one extra flap after takeoff means no badge
   const t = E.create(3); E.step(t, true); for (let i = 0; i < 10; i++) E.step(t, false); E.step(t, true); while (!t.dead) E.step(t, false);
   assert.equal(P.playerFlaps(t.flapTicks), 1);
+});
+
+test('marshmallow shop: bank, buying, no double spend, survives saves and merges', () => {
+  const s = P.defaultSave();
+  assert.deepEqual(P.SHOP_CHARS.map((c) => [c.id, c.cost]), [['pompom', 30], ['fairway', 30]]);
+  P.applyRun(s, runOf({ score: 20, mallows: 18 }));
+  assert.equal(P.wallet(s), 18, 'collected marshmallows go in the bank');
+  assert.deepEqual(P.buy(s, 'pompom'), { ok: false, reason: 'funds', short: 12 });
+  P.applyRun(s, runOf({ score: 20, mallows: 22 }));
+  const r = P.buy(s, 'pompom', 5);
+  assert.equal(r.ok, true); assert.equal(r.achievement.id, 'shopper');
+  assert.equal(P.wallet(s), 10);
+  assert.ok(s.unlocked.includes('pompom') && s.pendingReveal.includes('pompom'));
+  assert.equal(P.buy(s, 'pompom').reason, 'owned');
+  assert.equal(P.buy(s, 'critic').reason, 'not-for-sale');
+  assert.equal(P.buy(s, 'nobody').reason, 'not-for-sale');
+  // reload + an older cloud copy from before the purchase: still owned, still paid for once
+  const back = P.sanitize(JSON.parse(JSON.stringify(s)));
+  assert.deepEqual(back, s);
+  const older = P.defaultSave(); older.stats.mallows = 40; older.updatedAt = 1;
+  const m = P.merge(back, older);
+  assert.ok(m.unlocked.includes('pompom'));
+  assert.equal(P.wallet(m), 10);
+  // existing players: every marshmallow already collected counts
+  assert.equal(P.wallet(P.sanitize({ stats: { mallows: 64 } })), 64);
 });
 
 test('quips cover every outcome', () => {
