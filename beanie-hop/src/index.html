@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#7fc95c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Beanie Hop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+<!--STYLE-->
+</head>
+<body>
+<div id="app">
+  <canvas id="gl" aria-label="Beanie Hop game"></canvas>
+  <div id="vignette"></div>
+
+  <div id="hud" class="hidden" aria-live="polite">
+    <div class="hud-left">
+      <div id="score" class="score">0</div>
+      <div id="hud-best" class="sub">TOP 0</div>
+    </div>
+    <div class="hud-right">
+      <div class="chip corn-chip"><span class="corn-icon"></span><span id="corn">0</span></div>
+      <button id="pause-btn" class="icon-btn ui" aria-label="Pause"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+    </div>
+  </div>
+
+  <div id="title" class="screen">
+    <div class="logo" aria-label="Beanie Hop">
+      <div class="logo-1">BEANIE</div>
+      <div class="logo-2">HOP</div>
+      <div class="tagline">why did he cross the road?</div>
+    </div>
+    <div class="title-bottom">
+      <div class="play-hint"><span class="touch-only">TAP TO PLAY</span><span class="mouse-only">PRESS SPACE OR CLICK</span></div>
+      <div class="controls"><span class="touch-only">Tap to hop toward you &middot; swipe to steer</span><span class="mouse-only">&darr; / S / Space hop &middot; &larr; &rarr; steer &middot; &uarr; back</span></div>
+      <div class="title-row">
+        <div class="chip"><span class="trophy"></span>BEST <b id="title-best">0</b></div>
+        <div class="chip corn-chip"><span class="corn-icon"></span><b id="title-corn">0</b></div>
+        <button id="sfx-btn" class="icon-btn ui" aria-label="Sound effects"></button>
+        <button id="music-btn" class="icon-btn ui" aria-label="Music"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pause" class="screen dim hidden">
+    <div class="card">
+      <h2>PAUSED</h2>
+      <button id="resume-btn" class="big-btn ui">RESUME</button>
+      <div class="row">
+        <button id="sfx-btn-2" class="icon-btn ui" aria-label="Sound effects"></button>
+        <button id="music-btn-2" class="icon-btn ui" aria-label="Music"></button>
+        <button id="home-btn-2" class="text-btn ui">MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="over" class="screen hidden">
+    <div class="card over-card">
+      <div id="over-title" class="over-title">SPLAT!</div>
+      <div class="portrait-wrap"><img id="portrait" alt=""><div id="new-best" class="ribbon hidden">NEW BEST!</div></div>
+      <div id="quip" class="quip"></div>
+      <div class="stats">
+        <div><div class="label">SCORE</div><div id="over-score" class="val">0</div></div>
+        <div><div class="label">BEST</div><div id="over-best" class="val">0</div></div>
+        <div><div class="label">CORN</div><div id="over-corn" class="val">+0</div></div>
+      </div>
+      <button id="again-btn" class="big-btn ui">PLAY AGAIN</button>
+      <button id="home-btn" class="text-btn ui">MENU</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <div id="fps" class="hidden"></div>
+  <div id="loading">Loading&hellip;</div>
+</div>
+<!--SCRIPT-->
+</body>
+</html>

@@ -27,14 +27,20 @@
         "Challenge the big design decision in STATUS.md: the chicken hops TOWARD the camera (down the screen) so the man's face is always visible. Is there a better way to keep the face visible? Argue for or against it.",
         "Difficulty curve: look at difficulty(), the lane mix and the speeds/gaps in world.js. Suggest concrete number changes for the first 60 seconds of play and for row 150+.",
         "Creative direction: game-over lines, a better title than 'Beanie Hop' if you have one, and one or two replayability ideas that fit the photo-face concept."
-      ]
+      ],
+      "api": {
+        "enabled": false,
+        "url": "https://api.openai.com/v1/chat/completions",
+        "keyEnv": "OPENAI_API_KEY",
+        "note": "Off: needs an OpenAI API key, and this environment blocks api.openai.com. Copy-and-paste route in use."
+      }
     },
     {
       "id": "gemini",
       "name": "Gemini",
-      "requested": "Gemini Neon 4 High in Antigravity (chosen in Antigravity; not verifiable from here)",
+      "requested": "Gemini Neon 4 High in Antigravity. Running instead: gemini-3.8-flash at high reasoning effort through the Gemini API free tier (Neon needs paid billing)",
       "role": "Visual design, graphics, animation, performance optimisation, independent testing",
-      "delivery": "repo",
+      "delivery": "api",
       "files": [
         "collab/STATUS.md",
         "tools/make_face.py",
@@ -44,19 +50,30 @@
         "src/render/lanes.js",
         "src/render/particles.js"
       ],
-      "attach": [
-        "assets/head_front.webp",
-        "assets/head_side_r.webp",
-        "assets/head_top.webp",
-        "assets/portrait.webp"
-      ],
+      "attach": [],
       "asks": [
-        "Face integration: look at assets/head_front.webp and src/render/chicken.js. Does the face read as part of the chicken's head rather than a picture stuck on it? Give specific changes (mask edge, shading, head proportions, beak/comb/wattle placement, emissive level).",
-        "Check tools/make_face.py's colour grade and crop. Is the man still clearly recognisable at about 40 CSS pixels wide on a phone? What would you change?",
+        "Face integration (no images this round, for privacy; work from the code): src/render/chicken.js puts the face texture on the front of a 0.64 x 0.78 x 0.56 head box, with a knit beanie on the top and sides, a comb, a beak and a wattle under the chin, and emissiveIntensity 0.32. Will this read as part of the chicken's head rather than a picture stuck on it? Give specific changes (proportions, positions, shading, materials).",
+        "tools/make_face.py: review the colour grade, mask feathering, contact shadow and crop maths. The face will be about 40 CSS pixels wide on a phone. What would keep the man recognisable at that size?",
         "Palette and models (models.js, lanes.js): does the world look cohesive and readable at a glance (cars vs logs vs trains vs safe grass)? Name the exact PAL colours or model sizes you would change.",
         "Animation: the hop, squash-and-stretch, wing flap, idle and death poses in chicken.js. What would make them feel better?",
         "Mobile performance: draw calls, shadow cost, materials, the instanced particles, the edgeShade shader patch. What will hurt on a mid-range Android phone?"
-      ]
+      ],
+      "api": {
+        "enabled": true,
+        "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        "model": "gemini-3.8-flash",
+        "fallbackModels": [
+          "gemini-3.5-flash"
+        ],
+        "effort": "high",
+        "keyEnv": "GEMINI_API_KEY",
+        "maxTokens": 32768,
+        "price": {
+          "input": 0,
+          "output": 0
+        },
+        "note": "Free tier: no cost, but Google may use what is sent to improve its products, so send code only, never the photo."
+      }
     },
     {
       "id": "grok",
@@ -78,7 +95,13 @@
         "Write at least two new failing tests in the style of tests/sim.test.js for any bug you find (paste them in your reply).",
         "Optimisation: anything in step(), landingSpot(), vehicleAt() or the bot that is wasteful at 120 steps per second on a phone?",
         "Mechanics: are HOP_TIME, the input buffer (QUEUE_MAX), LOG_TOLERANCE, EAGLE_MARGIN and autoScroll() tuned well for touch controls? Propose values with reasons."
-      ]
+      ],
+      "api": {
+        "enabled": false,
+        "url": "https://api.x.ai/v1/chat/completions",
+        "keyEnv": "XAI_API_KEY",
+        "note": "Off: needs an xAI API key, and this environment blocks api.x.ai. Copy-and-paste or Cursor route in use."
+      }
     }
   ]
 }

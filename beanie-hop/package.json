@@ -5,10 +5,13 @@
   "description": "A voxel road-hopping game starring a chicken with a real face.",
   "type": "module",
   "scripts": {
-    "test": "node tests/sim.test.js && node tests/collab.test.js",
-    "test:quick": "node tests/sim.test.js --quick && node tests/collab.test.js",
+    "test": "node tests/sim.test.js && node tests/render.test.js && node tests/collab.test.js",
+    "test:quick": "node tests/sim.test.js --quick && node tests/render.test.js && node tests/collab.test.js",
     "handoff": "node tools/make_handoff.mjs",
-    "feedback": "node tools/read_feedback.mjs --fetch"
+    "feedback": "node tools/read_feedback.mjs --fetch",
+    "build": "node build.js",
+    "test:e2e": "node build.js && node tests/e2e.cjs",
+    "ask:gemini": "node tools/ask_ai.mjs gemini"
   },
   "dependencies": {
     "three": "0.170.0"

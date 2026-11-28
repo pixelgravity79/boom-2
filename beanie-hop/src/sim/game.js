@@ -102,7 +102,8 @@ export class Game {
       if (tx < C.COL_MIN || tx > C.COL_MAX) return this.bump(dir);
       if (to.type === 'grass' && to.blocked.has(tx)) return this.bump(dir);
     }
-    p.hop = { fx, fr: p.r, tx, tr, t0: this.t, dur: C.HOP_TIME, spot, dir };
+    const from = this.lane(p.r);
+    p.hop = { fx, fr: p.r, tx, tr, t0: this.t, dur: C.HOP_TIME, spot, dir, fromLog: !!p.log, fromPad: !!(from.pads && !p.log) };
     p.log = null;
     this.hops++;
     this.events.push({ type: 'hop', dir, from: this.lane(p.r).type, to: to.type });

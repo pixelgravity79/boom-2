@@ -54,7 +54,7 @@ ran-it: yes | no        (yes only if you actually executed the code or the tests
 ## Source files
 #### `collab/STATUS.md`
 ```markdown
-# Beanie Hop: project status (round 1)
+# Beanie Hop: project status
 
 **What it is:** an original voxel lane-hopping game for phone and desktop browsers. A chicken has to get across endless procedurally generated grass, roads, rivers and railways. The chicken's head is a real man's face from a photo, wearing his knit beanie. The face is the front of the 3D head cube, with a comb, beak and wattle attached to it.
 
@@ -92,18 +92,18 @@ ChatGPT Work's earlier files for this game could not be recovered: they were not
 - **Bot** (`src/sim/bot.js`): a lookahead autopilot playing the real rules, plus a static route map. It reaches row 160 on 10 of 12 test seeds.
 - **24 of 24 tests pass:** `node tests/sim.test.js`. Add `--quick` for a short run.
 
-## In progress (not playable yet)
+## Playable now
 
-- 3D renderer (Three.js r170, orthographic camera, one directional light with shadows). Written so far:
-  - `voxel.js`: box builder and edge-darkening shader patch;
-  - `models.js`: vehicles, trains, logs, trees, corn, eagle;
-  - `chicken.js`: the hero model and its animations;
-  - `lanes.js`: per-row meshes;
-  - `particles.js`.
-- Not written yet:
-  - scene/camera setup, the main loop, input (tap, swipe, keyboard);
-  - synthesized audio, menus and HUD, saving;
-  - the single-file build and deployment.
+- **3D renderer:** Three.js r170, orthographic camera, shadows, edge-darkened playfield, instanced particles, adaptive quality. About 80 draw calls per frame.
+- **Chicken:** big beanie bobble-head with the man's face on the front, plus comb, beak, wattle, wings and legs.
+  - Animation: squash and stretch (a sub-stepped spring that is stable at any frame rate), hop lean, and it turns back to face the player.
+  - Death animations: car (pancake, face up), train (launched), water (sinks), eagle (carried off).
+- **Controls:** tap, swipe, and keyboard (arrows/WASD/Space). Input is buffered.
+- **Sound:** synthesized effects and music, including crossing bells and train horns.
+- **Screens:** title, HUD, pause, and game over with the portrait. Best score, corn and settings are saved.
+- **Build:** a single-file build, `dist/index.html`, of about 650 KB.
+- **Tests:**
+  - `tests/e2e.cjs`: 36 browser checks on iPhone 13, Pixel 7, iPad Mini landscape and desktop. All pass.
 
 ## Key design decision to challenge
 
@@ -541,7 +541,8 @@ export class Game {
       if (tx < C.COL_MIN || tx > C.COL_MAX) return this.bump(dir);
       if (to.type === 'grass' && to.blocked.has(tx)) return this.bump(dir);
     }
-    p.hop = { fx, fr: p.r, tx, tr, t0: this.t, dur: C.HOP_TIME, spot, dir };
+    const from = this.lane(p.r);
+    p.hop = { fx, fr: p.r, tx, tr, t0: this.t, dur: C.HOP_TIME, spot, dir, fromLog: !!p.log, fromPad: !!(from.pads && !p.log) };
     p.log = null;
     this.hops++;
     this.events.push({ type: 'hop', dir, from: this.lane(p.r).type, to: to.type });

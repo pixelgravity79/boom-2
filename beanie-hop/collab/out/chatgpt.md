@@ -44,7 +44,7 @@ ran-it: yes | no        (yes only if you actually executed the code or the tests
 ## Source files
 #### `collab/STATUS.md`
 ```markdown
-# Beanie Hop: project status (round 1)
+# Beanie Hop: project status
 
 **What it is:** an original voxel lane-hopping game for phone and desktop browsers. A chicken has to get across endless procedurally generated grass, roads, rivers and railways. The chicken's head is a real man's face from a photo, wearing his knit beanie. The face is the front of the 3D head cube, with a comb, beak and wattle attached to it.
 
@@ -82,18 +82,18 @@ ChatGPT Work's earlier files for this game could not be recovered: they were not
 - **Bot** (`src/sim/bot.js`): a lookahead autopilot playing the real rules, plus a static route map. It reaches row 160 on 10 of 12 test seeds.
 - **24 of 24 tests pass:** `node tests/sim.test.js`. Add `--quick` for a short run.
 
-## In progress (not playable yet)
+## Playable now
 
-- 3D renderer (Three.js r170, orthographic camera, one directional light with shadows). Written so far:
-  - `voxel.js`: box builder and edge-darkening shader patch;
-  - `models.js`: vehicles, trains, logs, trees, corn, eagle;
-  - `chicken.js`: the hero model and its animations;
-  - `lanes.js`: per-row meshes;
-  - `particles.js`.
-- Not written yet:
-  - scene/camera setup, the main loop, input (tap, swipe, keyboard);
-  - synthesized audio, menus and HUD, saving;
-  - the single-file build and deployment.
+- **3D renderer:** Three.js r170, orthographic camera, shadows, edge-darkened playfield, instanced particles, adaptive quality. About 80 draw calls per frame.
+- **Chicken:** big beanie bobble-head with the man's face on the front, plus comb, beak, wattle, wings and legs.
+  - Animation: squash and stretch (a sub-stepped spring that is stable at any frame rate), hop lean, and it turns back to face the player.
+  - Death animations: car (pancake, face up), train (launched), water (sinks), eagle (carried off).
+- **Controls:** tap, swipe, and keyboard (arrows/WASD/Space). Input is buffered.
+- **Sound:** synthesized effects and music, including crossing bells and train horns.
+- **Screens:** title, HUD, pause, and game over with the portrait. Best score, corn and settings are saved.
+- **Build:** a single-file build, `dist/index.html`, of about 650 KB.
+- **Tests:**
+  - `tests/e2e.cjs`: 36 browser checks on iPhone 13, Pixel 7, iPad Mini landscape and desktop. All pass.
 
 ## Key design decision to challenge
 
@@ -564,7 +564,8 @@ export class Game {
       if (tx < C.COL_MIN || tx > C.COL_MAX) return this.bump(dir);
       if (to.type === 'grass' && to.blocked.has(tx)) return this.bump(dir);
     }
-    p.hop = { fx, fr: p.r, tx, tr, t0: this.t, dur: C.HOP_TIME, spot, dir };
+    const from = this.lane(p.r);
+    p.hop = { fx, fr: p.r, tx, tr, t0: this.t, dur: C.HOP_TIME, spot, dir, fromLog: !!p.log, fromPad: !!(from.pads && !p.log) };
     p.log = null;
     this.hops++;
     this.events.push({ type: 'hop', dir, from: this.lane(p.r).type, to: to.type });
@@ -1001,8 +1002,10 @@ process.exit(fail ? 1 : 0);
 // top and sides, and the comb, beak and wattle are real geometry attached to that head.
 import * as THREE from 'three';
 import { PAL } from './models.js';
+import { springStep } from './spring.js';
 
-const HEAD_W = 0.64, HEAD_H = 0.78, HEAD_D = 0.56;
+const HEAD_W = 0.76, HEAD_H = 0.925, HEAD_D = 0.6;   // big bobble-head: the face is the star (texture aspect 512:624)
+const SCALE = 1.1;
 const BODY_W = 0.5, BODY_H = 0.4, BODY_D = 0.54;
 const LEG_H = 0.15;
 const YAW = { f: 0, b: Math.PI, l: -Math.PI / 2, r: Math.PI / 2 };
@@ -1059,7 +1062,7 @@ export class Chicken {
     this.head = new THREE.Group();
     this.head.position.set(0, LEG_H + BODY_H - 0.05, 0.02);
     for (const t of Object.values(tex)) { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; }
-    const faceMat = lambert({ map: tex.front, emissive: 0xffffff, emissiveMap: tex.front, emissiveIntensity: 0.32 });
+    const faceMat = lambert({ map: tex.front, emissive: 0xffffff, emissiveMap: tex.front, emissiveIntensity: 0.2 });
     const knit = (map) => lambert({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.08 });
     const headMats = [knit(tex.sideR), knit(tex.sideL), knit(tex.top), white, faceMat, knit(tex.back)];
     const headBox = new THREE.Mesh(new THREE.BoxGeometry(HEAD_W, HEAD_H, HEAD_D), headMats);
@@ -1082,7 +1085,10 @@ export class Chicken {
     this.head.add(boxMesh(0.08, 0.12, 0.05, red, chinX, chinY - 0.2, HEAD_D / 2 + 0.03));
     this.pose.add(this.head);
 
-    this.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
+    // only the big volumes cast shadows; comb, beak, wattle and feet are too small to matter (Gemini review F4)
+    const major = new Set([this.body, headBox, ...this.wings.map((w) => w.pivot.children[0]), tail, ...this.legs.map((l) => l.children[0])]);
+    this.root.traverse((o) => { if (o.isMesh) { o.castShadow = major.has(o); o.receiveShadow = false; } });
+    this.root.scale.setScalar(SCALE);
 
     this.yaw = 0;
     this.headYaw = 0;
@@ -1115,8 +1121,7 @@ export class Chicken {
     const { dt } = view;
     // squash spring
     const s = this.sq;
-    s.vel += (-(s.v - s.target) * 380 - s.vel * 18) * dt;
-    s.v += s.vel * dt;
+    springStep(s, s.target, 380, 18, dt, 0.55, 1.45);
 
     this.root.position.set(view.x, view.y, view.z);
 
@@ -1145,7 +1150,7 @@ export class Chicken {
     this.head.rotation.z = idle * Math.sin(view.now * 0.9) * 0.05 * (Math.sin(view.now * 0.31) > 0.4 ? 1 : 0.2);
     this.head.rotation.x = view.hopping ? -0.08 * flap : -0.04;
     // bump: lean into the obstacle and pop back
-    this.pose.rotation.x = view.bumpK > 0 ? Math.sin(view.bumpK * Math.PI) * 0.25 : 0;
+    this.pose.rotation.x = view.bumpK > 0 ? Math.sin(view.bumpK * Math.PI) * 0.25 : view.hopping ? Math.sin(view.hopK * Math.PI) * 0.16 : 0;
     this.pose.position.y = view.bumpK > 0 ? Math.sin(view.bumpK * Math.PI) * 0.12 : 0;
   }
 

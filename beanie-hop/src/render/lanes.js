@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import * as C from '../sim/config.js';
 import { moverX, trainState } from '../sim/world.js';
 import { VoxelBuilder, NO_BOTTOM, vary } from './voxel.js';
+import { springStep } from './spring.js';
 import { PAL, addProp, vehicleGeo, logGeo, cornGeo, signalGeo, lampGeo, locoGeo, carriageGeo } from './models.js';
 
 export const GROUND_HALF = 36;   // ground strips extend this far to the sides
@@ -100,7 +101,7 @@ export class LaneView {
       this.train.visible = false;
       this.group.add(this.train);
       this.lamps = [];
-      for (const sx of [C.COL_MAX + 0.95, C.COL_MIN - 0.95]) {
+      for (const sx of [C.COL_MAX + 0.62, C.COL_MIN - 0.62]) {   // inside a phone-width view (Gemini F6)
         const s = new THREE.Mesh(signalGeo(), mats.world);
         s.position.set(sx, TOP.rail, -0.42);
         s.castShadow = true;
@@ -135,8 +136,9 @@ export class LaneView {
         const ridden = game.p.log && game.p.r === lane.row && game.p.log.i === i && game.state === 'playing';
         if (ridden && !mv.rider) mv.sinkV -= 0.9;        // dips when you land on it
         mv.rider = ridden;
-        mv.sinkV += (-mv.sink * 140 - mv.sinkV * 9) * dt;
-        mv.sink += mv.sinkV * dt;
+        const sp = { v: mv.sink, vel: mv.sinkV };
+        springStep(sp, 0, 140, 9, dt, -1.5, 1.5);
+        mv.sink = sp.v; mv.sinkV = sp.vel;
         mv.mesh.position.y = LOG_TOP - 0.3 + mv.sink * 0.06 + Math.sin(t * 2 + i * 1.7 + lane.row) * 0.012;
       }
     }

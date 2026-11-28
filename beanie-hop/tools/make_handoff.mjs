@@ -63,6 +63,9 @@ export function buildPack(roles, who, root = ROOT) {
     L.push(`Please **don't change any other file**: Claude reads your branch and makes the changes, so the team keeps one source of truth.`);
     L.push('');
     L.push('If you can\'t use git, reply in chat in the format below instead. The source files are included at the end of this message.');
+  } else if (c.delivery === 'api') {
+    L.push('This message reaches you through your API, so you cannot run the code or open the repo. Set `ran-it: no`. The relevant source files are included at the end of this message.');
+    L.push('Reply only in the format below; a script reads your reply and passes it to Claude.');
   } else {
     L.push('The relevant source files are included at the end of this message. Reply in chat in the format below; it will be passed back to Claude.');
   }
