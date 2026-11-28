@@ -15,7 +15,7 @@ You choose those model settings inside each app; Claude can't see or verify them
 ## Each round
 
 1. **Claude** updates `collab/STATUS.md` and the asks in `collab/roles.json`, runs `node tools/make_handoff.mjs`, and pushes.
-2. **You** open `beanie-hop/collab/out/<name>.md` on GitHub (use the "Raw" view), copy all of it, and paste it into that AI. For Gemini, also attach the four images it lists from `beanie-hop/assets/`.
+2. **You** open the handoff page, https://claude.ai/artifact/4PGVTMkHtegtKzDJc6pAqr, tap **Copy message** for ChatGPT or Grok, and paste it into that AI. The page is built from `collab/handoff-page.html`. Gemini needs nothing from you: `node tools/ask_ai.mjs gemini` sends its message through the API.
 3. **The reply comes back** in one of two ways:
    - **Gemini and Grok in an IDE:** they commit their reply to `beanie-hop/collab/feedback/<name>.md` on a branch called `collab/<name>` and push it. Just tell Claude "Grok pushed", for example.
    - **ChatGPT, or anyone replying in chat:** paste the reply to Claude, or into `collab/feedback/<name>.md`.
@@ -28,6 +28,7 @@ You choose those model settings inside each app; Claude can't see or verify them
 | `collab/roles.json` | who does what, which files each AI sees, this round's questions |
 | `collab/STATUS.md` | shared project status, included in every message |
 | `collab/out/*.md` | generated paste-ready messages (don't edit; regenerate) |
+| `collab/handoff-page.html` | the copy-button page; republish it with `out/chatgpt.md` and `out/grok.md` as `chatgpt.txt` and `grok.txt` |
 | `collab/feedback/*.md` | replies; templates say `status: waiting` until a real reply arrives |
 | `collab/LOG.md` | what was sent, what came back, and what was done with it |
 | `tools/make_handoff.mjs` | builds the messages |

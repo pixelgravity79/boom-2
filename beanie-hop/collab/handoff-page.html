@@ -1,0 +1,118 @@
+<title>Beanie Hop Handoffs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday, a helper for the game's team
+   IDEA the game's own world: cream cards on a grass field, like its game-over card
+   PICTURE the two message cards themselves, each with its copy button and a preview of the message
+   COLOUR grass green ground, cream cards, ink, the game's green button and yellow highlight
+   TYPE Lilita One (the game's logo face) + Inter
+   LAYOUT laptop: title row, two cards side by side, return step below; phone: title, cards stacked */
+:root{color-scheme:light dark;--bg:light-dark(#8bce62,#1d3318);--card:light-dark(#fffaf0,#232029);--ink:light-dark(#2a2230,#f4efe6);--soft:light-dark(#efe6d6,#302c38);--muted:light-dark(#5b5363,#b9b0c2);--go:#43a852;--go-d:#2f7d3b;--hi:#ffd23f}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip;margin:0}
+.band{padding-block:clamp(24px,4vw,52px);padding-left:max(5vw,16px,env(safe-area-inset-left,0px));padding-right:max(5vw,16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font:400 clamp(34px,6vw,52px)/1.05 'Lilita One','Arial Black',sans-serif;letter-spacing:-.01em;margin:0 0 8px;color:#fffaf0;text-shadow:0 3px 0 #2a2230,2px 0 0 #2a2230,-2px 0 0 #2a2230,0 -2px 0 #2a2230}
+.lede{margin:0 0 22px;max-width:62ch;font-weight:600;color:light-dark(#1f2a17,#e6f0de)}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.card{background:var(--card);border-radius:22px;padding:20px;box-shadow:0 6px 0 rgba(0,0,0,.18);display:flex;flex-direction:column;gap:12px}
+.head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+h2{font:400 32px/1.05 'Lilita One','Arial Black',sans-serif;margin:0}
+.size{font-size:14px;color:var(--muted);white-space:nowrap}
+.pick{margin:0;font-size:15px;color:var(--muted)}
+.copy{font:400 24px/1 'Lilita One','Arial Black',sans-serif;color:#fff;background:var(--go);border:0;border-radius:16px;padding:16px 12px 14px;box-shadow:0 5px 0 var(--go-d);cursor:pointer;min-height:56px}
+.copy:active{transform:translateY(3px);box-shadow:0 2px 0 var(--go-d)}
+.copy:focus-visible{outline:3px solid var(--hi);outline-offset:3px}
+.copy[data-state=done]{background:#2a2230;box-shadow:0 5px 0 #000}
+.status{min-height:22px;margin:-4px 0 0;font-size:14px;font-weight:600}
+ol{margin:0;padding-left:22px;display:grid;gap:6px}
+li a{color:inherit;font-weight:700}
+.preview{background:var(--soft);border-radius:12px;padding:10px 12px;font:13px/1.45 ui-monospace,Menlo,monospace;height:150px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+textarea{width:100%;height:120px;font:13px/1.4 ui-monospace,Menlo,monospace;border-radius:12px;border:2px solid var(--ink);padding:8px;background:var(--card);color:var(--ink)}
+.back{margin-top:18px;background:var(--card);border-radius:22px;padding:18px 20px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 16px;align-items:center;box-shadow:0 6px 0 rgba(0,0,0,.18)}
+.back b{font:400 44px/1 'Lilita One','Arial Black',sans-serif;color:var(--go)}
+.back p{margin:0}
+.note{margin:14px 0 0;font-size:14px;color:light-dark(#1f2a17,#cfe0c6)}
+@media(max-width:720px){.cards{grid-template-columns:minmax(0,1fr)}}
+</style>
+
+<div class="band"><div class="wrap">
+  <h1>Beanie Hop handoffs</h1>
+  <p class="lede">Each AI gets one message: it explains the game, asks five specific questions and includes the code. Copy it, paste it into that AI as one message, and send.</p>
+
+  <div class="cards">
+    <section class="card" aria-labelledby="h-chatgpt">
+      <div class="head"><h2 id="h-chatgpt">ChatGPT</h2><span class="size" id="size-chatgpt">loading…</span></div>
+      <p class="pick">Role: code review, architecture, gameplay and creative direction.</p>
+      <button class="copy" id="copy-chatgpt" data-id="chatgpt">COPY MESSAGE</button>
+      <p class="status" id="status-chatgpt" role="status"></p>
+      <ol>
+        <li>Open <a href="https://chatgpt.com/" target="_blank" rel="noopener">chatgpt.com</a> or the ChatGPT app and start a new chat.</li>
+        <li>Pick your strongest model, with extended or high thinking if you have it.</li>
+        <li>Paste with a long-press, then send. It's one long message, and that's expected.</li>
+      </ol>
+      <pre class="preview" id="preview-chatgpt" aria-label="Start of the ChatGPT message"></pre>
+    </section>
+
+    <section class="card" aria-labelledby="h-grok">
+      <div class="head"><h2 id="h-grok">Grok</h2><span class="size" id="size-grok">loading…</span></div>
+      <p class="pick">Role: game mechanics, edge cases, speed and finding broken levels.</p>
+      <button class="copy" id="copy-grok" data-id="grok">COPY MESSAGE</button>
+      <p class="status" id="status-grok" role="status"></p>
+      <ol>
+        <li>Open <a href="https://grok.com/" target="_blank" rel="noopener">grok.com</a> or the Grok app (or Grok in Cursor) and start a new chat.</li>
+        <li>Pick its expert or deepest-thinking mode if you have it.</li>
+        <li>Paste with a long-press, then send. If it's in Cursor and pushes to a branch called <code>collab/grok</code>, just tell Claude.</li>
+      </ol>
+      <pre class="preview" id="preview-grok" aria-label="Start of the Grok message"></pre>
+    </section>
+  </div>
+
+  <div class="back">
+    <b>then</b>
+    <p><strong>Copy each AI's whole reply and paste it into your chat with Claude.</strong> Claude checks every suggestion against the running game before using it, and records what it used or rejected, and why.</p>
+  </div>
+  <p class="note">Gemini isn't here because Claude already sends it its message automatically through your Gemini key. These messages contain only the game's code and questions, not the photo.</p>
+</div></div>
+
+<script>
+{
+  const texts = {};
+  const kb = (s) => (new Blob([s]).size / 1024).toFixed(1) + ' KB';
+  const set = (id, msg) => { document.getElementById(id).textContent = msg; };
+  for (const id of ['chatgpt', 'grok']) {
+    fetch(id + '.txt').then((r) => { if (!r.ok) throw new Error(r.status); return r.text(); }).then((t) => {
+      texts[id] = t;
+      set('size-' + id, kb(t) + ' · ' + t.split('\n').length + ' lines');
+      set('preview-' + id, t.split('\n').slice(0, 24).join('\n') + '\n…');
+    }).catch(() => {
+      set('size-' + id, 'not loaded');
+      set('status-' + id, 'The message file did not load. Reload the page to try again.');
+    });
+  }
+  function manual(id) {
+    const card = document.getElementById('copy-' + id).closest('.card');
+    let ta = card.querySelector('textarea');
+    if (!ta) { ta = document.createElement('textarea'); ta.id = 'manual-' + id; ta.readOnly = true; ta.value = texts[id]; card.insertBefore(ta, card.querySelector('ol')); }
+    ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    set('status-' + id, ok ? 'Copied. Now paste it into the chat.' : 'Copying was blocked here. The whole message is selected in the box above: use Copy from the menu.');
+    return ok;
+  }
+  for (const btn of document.querySelectorAll('.copy')) {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      if (!texts[id]) { set('status-' + id, 'Still loading, try again in a moment.'); return; }
+      const done = () => { btn.dataset.state = 'done'; btn.textContent = 'COPIED'; set('status-' + id, 'Copied ' + kb(texts[id]) + '. Now paste it into the chat.'); };
+      try {
+        navigator.clipboard.writeText(texts[id]).then(done, () => { if (manual(id)) done(); });
+      } catch (e) { if (manual(id)) done(); }
+    });
+  }
+}
+</script>
