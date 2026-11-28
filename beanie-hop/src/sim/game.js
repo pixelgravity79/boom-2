@@ -10,6 +10,8 @@ export class Game {
     this.seed = seed >>> 0;
     this.world = world || new World(this.seed);
     this.t = 0;
+    this.tick = 0;
+    this.eagleWarn = false;
     this.state = 'ready'; // ready -> playing -> dead
     this.p = { x: 0, r: 0, face: 'f', hop: null, log: null, bumpT: -9, bumpUntil: 0, bumpDir: 'f', lastMoveT: 0 };
     this.queue = [];
@@ -27,7 +29,7 @@ export class Game {
     const g = Object.create(Game.prototype);
     Object.assign(g, this);
     g.p = { ...this.p, hop: this.p.hop && { ...this.p.hop }, log: this.p.log && { ...this.p.log } };
-    g.queue = this.queue.slice();
+    g.queue = this.queue.map((q) => ({ ...q }));
     g.collected = new Set(this.collected);
     g.events = [];
     return g;
@@ -37,9 +39,12 @@ export class Game {
 
   /** Queue a move: 'f' forward (toward the camera), 'b' back, 'l' left (-x), 'r' right (+x). */
   input(dir) {
-    if (this.state === 'dead' || !C.DIRS[dir]) return false;
-    if (this.queue.length >= C.QUEUE_MAX) return false;
-    this.queue.push(dir);
+    if (this.state === 'dead' || typeof dir !== 'string' || !Object.hasOwn(C.DIRS, dir)) return false;
+    const q = this.queue;
+    if (q.length >= C.QUEUE_MAX) {
+      if (q[q.length - 1].dir === dir) return false;   // already buffered
+      q[q.length - 1] = { dir, t: this.t };             // a correction replaces the stale last move
+    } else q.push({ dir, t: this.t });
     if (this.state === 'ready') { this.state = 'playing'; this.started = true; }
     return true;
   }
@@ -62,22 +67,35 @@ export class Game {
 
   step(dt = C.DT) {
     this.t += dt;
+    this.tick++;
     if (this.state !== 'playing') return;
     const p = this.p;
-    if (p.hop && this.t >= p.hop.t0 + p.hop.dur) this.land();
+    if (p.hop && this.tick >= p.hop.endTick) this.land();
     if (this.state !== 'playing') return;
-    if (!p.hop && this.queue.length && this.t >= p.bumpUntil) this.startHop(this.queue.shift());
+    // resolve where we are now before any buffered move can carry us out of it
     if (p.log && !p.hop) {
       p.x = this.pos().x;
       if (Math.abs(p.x) > C.SWEPT_X) return this.die('swept');
     }
     this.checkHazards();
     if (this.state !== 'playing') return;
-    // the camera creeps forward on its own and catches up with a player who is ahead of it
+    while (this.queue.length && this.t - this.queue[0].t > C.INPUT_EXPIRE) this.queue.shift();
+    if (!p.hop && this.queue.length && this.t >= p.bumpUntil) this.startHop(this.queue.shift().dir);
+    // pressure line: creeps forward on its own, catches up with a player ahead of it, never moves back
     const pr = this.pos().r;
     this.cam += C.autoScroll(this.score) * dt;
     if (pr > this.cam) this.cam += (pr - this.cam) * (1 - Math.exp(-C.CAM_FOLLOW * dt));
-    if (pr < this.cam - C.EAGLE_MARGIN) this.die('eagle');
+    const behind = this.cam - pr;
+    if (!this.eagleWarn && behind > C.EAGLE_WARN_MARGIN) { this.eagleWarn = true; this.events.push({ type: 'eagleWarn' }); }
+    else if (this.eagleWarn && behind < C.EAGLE_WARN_MARGIN - 0.6) { this.eagleWarn = false; this.events.push({ type: 'eagleWarnEnd' }); }
+    if (behind > C.EAGLE_MARGIN) this.die('eagle');
+  }
+
+  /** Take the events produced since the last call. */
+  drainEvents() {
+    const e = this.events;
+    this.events = [];
+    return e;
   }
 
   startHop(dir) {
@@ -103,7 +121,7 @@ export class Game {
       if (to.type === 'grass' && to.blocked.has(tx)) return this.bump(dir);
     }
     const from = this.lane(p.r);
-    p.hop = { fx, fr: p.r, tx, tr, t0: this.t, dur: C.HOP_TIME, spot, dir, fromLog: !!p.log, fromPad: !!(from.pads && !p.log) };
+    p.hop = { fx, fr: p.r, tx, tr, t0: this.t, dur: C.HOP_TIME, endTick: this.tick + C.HOP_TICKS, spot, dir, fromLog: !!p.log, fromPad: !!(from.pads && !p.log) };
     p.log = null;
     this.hops++;
     this.events.push({ type: 'hop', dir, from: this.lane(p.r).type, to: to.type });
@@ -132,6 +150,8 @@ export class Game {
         p.x = this.pos().x;
       } else p.x = h.spot.pad;
     }
+    this.checkHazards();                 // a fatal landing earns nothing
+    if (this.state !== 'playing') return;
     const col = Math.round(p.x);
     if (lane.coins.includes(col) && Math.abs(p.x - col) < 0.5) {
       const key = p.r + ':' + col;
@@ -150,18 +170,21 @@ export class Game {
 
   checkHazards() {
     const pos = this.pos();
-    const lane = this.lane(pos.rEff);
-    if (lane.type === 'road') {
-      const m = vehicleAt(lane, pos.x, this.t);
-      if (m) this.die('car', { vehicle: m, dir: lane.dir, speed: lane.speed, vx: moverX(lane, m, this.t) });
-    } else if (lane.type === 'rail') {
-      if (trainAt(lane, pos.x, this.t)) this.die('train', { dir: lane.dir });
+    const r0 = Math.floor(pos.r), r1 = Math.ceil(pos.r);
+    for (const row of r0 === r1 ? [r0] : [r0, r1]) {
+      const lane = this.lane(row);
+      const halfR = C.LANE_HALF_R[lane.type];
+      if (!halfR || Math.abs(pos.r - row) >= C.PLAYER_HALF_R + halfR) continue; // mid-hop: only lanes the hitbox overlaps
+      if (lane.type === 'road') {
+        const m = vehicleAt(lane, pos.x, this.t);
+        if (m) return this.die('car', { vehicle: m, dir: lane.dir, speed: lane.speed, vx: moverX(lane, m, this.t), row });
+      } else if (trainAt(lane, pos.x, this.t)) return this.die('train', { dir: lane.dir, row });
     }
   }
 
   die(kind, info = {}) {
     const pos = this.pos();
-    this.death = { kind, t: this.t, x: pos.x, r: kind === 'car' || kind === 'train' ? pos.rEff : pos.r, y: pos.y, face: this.p.face, ...info };
+    this.death = { kind, t: this.t, x: pos.x, r: info.row !== undefined ? info.row : pos.r, y: pos.y, face: this.p.face, ...info };
     this.state = 'dead';
     this.queue.length = 0;
     this.events.push({ type: 'death', kind });

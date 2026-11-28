@@ -34,7 +34,8 @@ ChatGPT Work's earlier files for this game could not be recovered: they were not
   - log gaps between about 0.9 and 4.3 tiles;
   - trains always warn before they arrive.
 - **Bot** (`src/sim/bot.js`): a lookahead autopilot playing the real rules, plus a static route map. It reaches row 160 on 10 of 12 test seeds.
-- **24 of 24 tests pass:** `node tests/sim.test.js`. Add `--quick` for a short run.
+- **40 simulation tests pass:** `node tests/sim.test.js`. Add `--quick` for a short run. They include the round-1 regressions from ChatGPT and Grok, and the acceptance bar that the bot reaches row 150 on at least 95 of 100 seeds (it reaches 98).
+- **Hazard runs are capped:** at most 3, 4, 5 or 7 dangerous rows in a row as the game progresses, with a grass row forced after.
 
 ## Playable now
 
@@ -47,7 +48,8 @@ ChatGPT Work's earlier files for this game could not be recovered: they were not
 - **Screens:** title, HUD, pause, and game over with the portrait. Best score, corn and settings are saved.
 - **Build:** a single-file build, `dist/index.html`, of about 650 KB.
 - **Tests:**
-  - `tests/e2e.cjs`: 36 browser checks on iPhone 13, Pixel 7, iPad Mini landscape and desktop. All pass.
+  - `tests/e2e.cjs`: 40 browser checks on iPhone 13, Pixel 7, iPad Mini landscape and desktop, including the eagle warning. All pass.
+- **Round 1 reviews from all three AIs are integrated;** see `collab/LOG.md`.
 
 ## Key design decision to challenge
 

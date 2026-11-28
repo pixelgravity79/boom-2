@@ -1,7 +1,7 @@
 // Simulation tests: determinism, generator guarantees, rules, and a bot fairness run.
 // Run: node tests/sim.test.js            (add --quick to skip the long bot run)
 import * as C from '../src/sim/config.js';
-import { World, moverX, trainState, wrapX } from '../src/sim/world.js';
+import { World, moverX, trainState, wrapX, landingSpot } from '../src/sim/world.js';
 import { Game } from '../src/sim/game.js';
 import { autoplay } from '../src/sim/bot.js';
 
@@ -131,7 +131,7 @@ test('trains never overlap themselves and always warn first', () => {
     for (let r = 0; r < ROWS; r++) {
       const l = w.lane(r);
       if (l.type !== 'rail') continue;
-      assert(l.train.pass + C.TRAIN_WARN < l.train.period, `seed ${s} row ${r}`);
+      assert(l.train.pass + l.train.warn < l.train.period && l.train.warn >= C.TRAIN_WARN, `seed ${s} row ${r}`);
       const arrive = l.train.phase + l.train.period * 3;
       assert(trainState(l, arrive - 0.5).warn && !trainState(l, arrive - 0.5).active, 'no warning');
       assert(trainState(l, arrive + 0.3).active, 'not active');
@@ -231,6 +231,135 @@ test('clone is independent', () => {
   assert(h.p.r === 2 && g.p.r === 0 && g.p.hop, 'clone leaked');
 });
 
+console.log('round 1 review regressions (ChatGPT, Grok)');
+// ChatGPT F3
+test('a queued hop cannot escape the swept boundary', () => {
+  const g = custom({ 1: { type: 'river', speed: 1, dir: 1, movers: [{ x0: 4.945, len: 3, kind: 'log' }] } });
+  g.state = 'playing'; g.p.r = 1; g.p.x = 4.945; g.p.log = { i: 0, off: 0 };
+  g.input('f');
+  g.step(C.DT);
+  assert(g.state === 'dead' && g.death.kind === 'swept', g.state);
+});
+// ChatGPT F5
+test('decorative lily pads outside the playfield cannot be landed on', () => {
+  const g = custom({ 0: { type: 'river', speed: 0, movers: [{ x0: 4.7, len: 3, kind: 'log' }] }, 1: { type: 'river', pads: new Set([0, 5]) } });
+  g.state = 'playing'; g.p.log = { i: 0, off: 0 };
+  g.input('f');
+  stepFor(g, 0.2);
+  assert(g.state === 'dead' && g.death.kind === 'splash', g.state);
+});
+test('generated scenery pads are kept apart from playable ones', () => {
+  for (let s = 0; s < 40; s++) {
+    const w = new World(s);
+    for (let r = 0; r < 300; r++) {
+      const l = w.lane(r);
+      if (l.pads) for (const x of l.pads) assert(x >= C.COL_MIN && x <= C.COL_MAX, `seed ${s} row ${r}: playable pad at ${x}`);
+    }
+  }
+});
+// ChatGPT F6
+test('a fatal landing awards neither corn nor score', () => {
+  const g = custom({ 1: { type: 'road', dir: 1, speed: 2, movers: [{ x0: -1.295, len: 1.45, kind: 'car' }], coins: [0] } });
+  g.input('f');
+  stepFor(g, 0.2);
+  assert(g.state === 'dead' && g.death.kind === 'car', g.state);
+  assert(g.corn === 0 && g.score === 0, `corn ${g.corn} score ${g.score}`);
+  assert(!g.events.some((e) => e.type === 'coin' || e.type === 'land'), 'reward events emitted');
+});
+// ChatGPT F9
+test('invalid and inherited direction names are rejected', () => {
+  const g = custom({});
+  for (const dir of ['toString', 'constructor', '__proto__', 'hasOwnProperty', 'invalid', null, undefined, 3]) assert(!g.input(dir), String(dir));
+  assert(g.queue.length === 0 && g.state === 'ready');
+});
+test('a correction replaces the stale buffered move when the buffer is full', () => {
+  const g = custom({});
+  g.input('f'); g.input('f');
+  assert(g.input('r') && g.queue.map((q) => q.dir).join() === 'f,r', JSON.stringify(g.queue));
+  stepFor(g, C.HOP_TIME * 2 + 0.05);
+  assert(g.p.r === 1 && g.p.x === 1, `r ${g.p.r} x ${g.p.x}`);
+});
+test('stale buffered moves expire', () => {
+  const g = custom({});
+  g.input('f');
+  g.queue[0].t -= 1;
+  stepFor(g, 0.3);
+  assert(g.p.r === 0, 'an expired move was still executed');
+});
+// ChatGPT F2
+test('runs of dangerous rows respect the difficulty cap', () => {
+  for (let seed = 0; seed < (quick ? 60 : 300); seed++) {
+    const w = new World(seed);
+    let streak = 0;
+    for (let row = 0; row < 700; row++) {
+      streak = w.lane(row).type === 'grass' ? 0 : streak + 1;
+      assert(streak <= C.hazardCap(row), `seed ${seed}, row ${row}: ${streak} dangerous rows in a row`);
+    }
+  }
+});
+// ChatGPT test: determinism
+test('seeded replay produces an identical game', () => {
+  const a = new Game(12345), b = new Game(12345);
+  const inputs = new Map([[0, 'f'], [20, 'f'], [40, 'r'], [60, 'f'], [90, 'l'], [120, 'f']]);
+  for (let tick = 0; tick < 600; tick++) {
+    if (inputs.has(tick)) { a.input(inputs.get(tick)); b.input(inputs.get(tick)); }
+    a.step(C.DT); b.step(C.DT);
+    assert(a.state === b.state && a.score === b.score && a.corn === b.corn, 'diverged at ' + tick);
+    assert(near(a.cam, b.cam) && near(a.pos().x, b.pos().x) && near(a.pos().r, b.pos().r), 'diverged at ' + tick);
+  }
+});
+// ChatGPT F4 / Grok F3
+test('mid-hop: a car you have already cleared does not kill you', () => {
+  // car (speed 10) reaches x=0 in row 1 only when the hop to row 2 is ~80% done
+  const g = custom({ 1: { type: 'road', dir: 1, speed: 10, movers: [{ x0: -12, len: 1.45, kind: 'car' }] } });
+  g.state = 'playing'; g.p.r = 1;
+  g.t = (-(1.005 + 10 * C.HOP_TIME * 0.8) + 12) / 10;   // so the car arrives 0.8 of a hop after we jump
+  g.input('f');
+  stepFor(g, 0.3);
+  assert(g.state === 'playing' && g.p.r === 2, g.state + (g.death ? ' ' + g.death.kind : ''));
+});
+test('mid-hop: a car in the lane you are jumping into kills you before you land', () => {
+  const g = custom({ 1: { type: 'road', dir: 1, speed: 0.001, movers: [{ x0: 0, len: 1.45, kind: 'car' }] } });
+  g.input('f');
+  stepFor(g, 0.3);
+  assert(g.state === 'dead' && g.death.kind === 'car' && g.death.r === 1, g.state);
+  assert(g.death.t < C.HOP_TIME, 'only died on landing');
+});
+test('hops land on an exact tick', () => {
+  const g = custom({});
+  g.input('f');
+  g.step(C.DT);                                   // the buffered move starts on the next step
+  assert(g.p.hop, 'hop did not start');
+  for (let i = 0; i < C.HOP_TICKS - 1; i++) g.step(C.DT);
+  assert(g.p.hop, 'landed early');
+  g.step(C.DT);
+  assert(!g.p.hop && g.p.r === 1, 'did not land on tick ' + C.HOP_TICKS);
+});
+// ChatGPT F8
+test('the eagle circles (warning event) before it strikes', () => {
+  const g = custom({});
+  g.input('f');
+  const seen = [];
+  for (let i = 0; i < 120 * 30 && g.state === 'playing'; i++) { g.step(C.DT); seen.push(...g.drainEvents()); }
+  const warn = seen.findIndex((e) => e.type === 'eagleWarn'), death = seen.findIndex((e) => e.type === 'death' && e.kind === 'eagle');
+  assert(warn >= 0 && death > warn, `warn ${warn} death ${death}`);
+});
+// Grok F1 / ChatGPT F11
+test('a landing 0.25 past a log end still holds (documented tolerance)', () => {
+  const lane = { type: 'river', dir: 1, speed: 0, movers: [{ x0: 0, len: 3, kind: 'log' }] };
+  const s = landingSpot(lane, 1.75, 0);
+  assert(s && s.log, 'expected landing at 1.75, got ' + JSON.stringify(s));
+  assert(!landingSpot(lane, 1.85, 0), '0.35 past the end should splash');
+});
+// Grok F2 (its test corrected: start on the log, the original jumped into water before reaching it)
+test('hopping forward off a log that drifted past the edge lands on the edge column', () => {
+  const g = custom({ 1: { type: 'river', dir: 1, speed: 0, movers: [{ x0: 4.2, len: 2, kind: 'log' }] } });
+  g.state = 'playing'; g.p.r = 1; g.p.log = { i: 0, off: 0.5 };   // x = 4.7
+  g.input('f');
+  stepFor(g, C.HOP_TIME + 0.02);
+  assert(g.state === 'playing' && g.p.r === 2 && g.p.x === C.COL_MAX, `r=${g.p.r} x=${g.p.x} state=${g.state}`);
+});
+
 console.log('bot fairness');
 test('the bot gets deep into most seeds', () => {
   const n = quick ? 4 : 12, target = quick ? 60 : 160;
@@ -240,6 +369,14 @@ test('the bot gets deep into most seeds', () => {
   const made = res.filter((r) => r.score >= target).length;
   console.log('       ' + res.map((r) => r.score + (r.kind ? '/' + r.kind : '')).join('  ') + `   (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
   assert(made >= Math.ceil(n * 0.75), `only ${made}/${n} reached row ${target}`);
+});
+if (!quick) test('acceptance (ChatGPT F13): the bot reaches row 150 on at least 95 of 100 seeds', () => {
+  const t0 = Date.now();
+  const res = [];
+  for (let s = 0; s < 100; s++) res.push(autoplay(new Game(5000 + s), { maxRows: 150 }));
+  const made = res.filter((r) => r.score >= 150).length;
+  console.log(`       ${made}/100 reached row 150 (${((Date.now() - t0) / 1000).toFixed(0)}s)`);
+  assert(made >= 95, `only ${made}/100`);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

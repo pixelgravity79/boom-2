@@ -8,10 +8,11 @@ import { Particles } from './particles.js';
 import { eagleParts, PAL } from './models.js';
 import { edgeShade } from './voxel.js';
 
-const PITCH = THREE.MathUtils.degToRad(54);
+const PITCH = THREE.MathUtils.degToRad(46);   // lower = the face is seen more head-on (ChatGPT F14)
 const YAW = THREE.MathUtils.degToRad(-13);
 const VIEW_DIR = new THREE.Vector3(Math.sin(YAW) * Math.cos(PITCH), Math.sin(PITCH), Math.cos(YAW) * Math.cos(PITCH));
 const LIGHT_OFFSET = new THREE.Vector3(-6, 14, 7);
+const HIT_STOP = 0.12;
 
 function waterTexture() {
   const c = document.createElement('canvas');
@@ -202,6 +203,7 @@ export class Renderer {
    */
   render(game, t, dt, mode, now) {
     const p = game.p, death = game.death;
+    if (death) t = t - death.t < HIT_STOP ? death.t : t - HIT_STOP;   // a beat of stillness on impact (ChatGPT F16)
     // ---- chicken
     const pos = game.pos(t);
     let baseY;

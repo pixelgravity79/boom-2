@@ -81,7 +81,8 @@ ChatGPT Work's earlier files for this game could not be recovered: they were not
   - log gaps between about 0.9 and 4.3 tiles;
   - trains always warn before they arrive.
 - **Bot** (`src/sim/bot.js`): a lookahead autopilot playing the real rules, plus a static route map. It reaches row 160 on 10 of 12 test seeds.
-- **24 of 24 tests pass:** `node tests/sim.test.js`. Add `--quick` for a short run.
+- **40 simulation tests pass:** `node tests/sim.test.js`. Add `--quick` for a short run. They include the round-1 regressions from ChatGPT and Grok, and the acceptance bar that the bot reaches row 150 on at least 95 of 100 seeds (it reaches 98).
+- **Hazard runs are capped:** at most 3, 4, 5 or 7 dangerous rows in a row as the game progresses, with a grass row forced after.
 
 ## Playable now
 
@@ -94,7 +95,8 @@ ChatGPT Work's earlier files for this game could not be recovered: they were not
 - **Screens:** title, HUD, pause, and game over with the portrait. Best score, corn and settings are saved.
 - **Build:** a single-file build, `dist/index.html`, of about 650 KB.
 - **Tests:**
-  - `tests/e2e.cjs`: 36 browser checks on iPhone 13, Pixel 7, iPad Mini landscape and desktop. All pass.
+  - `tests/e2e.cjs`: 40 browser checks on iPhone 13, Pixel 7, iPad Mini landscape and desktop, including the eagle warning. All pass.
+- **Round 1 reviews from all three AIs are integrated;** see `collab/LOG.md`.
 
 ## Key design decision to challenge
 
@@ -553,7 +555,7 @@ export function addProp(b, kind, x, v, z = 0, tall = false) {
   const jitter = (v - 0.5) * 0.12;
   switch (kind) {
     case 'tree': {
-      const h = tall ? 0.7 + v * 1.1 : [0.5, 0.72, 0.95][Math.floor(v * 3) % 3];
+      const h = tall ? 0.7 + v * 1.1 : [0.45, 0.62, 0.8][Math.floor(v * 3) % 3];   // kept short in play so they never hide the chicken
       const leaf = vary(PAL.leaf[Math.floor(v * 7) % PAL.leaf.length], v, 0.05);
       b.box(0.28, 0.3, 0.28, x, 0, z, PAL.trunk, NO_BOTTOM);
       b.box(0.8, h, 0.8, x + jitter * 0.3, 0.3, z, leaf);
@@ -715,7 +717,7 @@ export class Chicken {
     this.head = new THREE.Group();
     this.head.position.set(0, LEG_H + BODY_H - 0.05, 0.02);
     for (const t of Object.values(tex)) { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; }
-    const faceMat = lambert({ map: tex.front, emissive: 0xffffff, emissiveMap: tex.front, emissiveIntensity: 0.2 });
+    const faceMat = lambert({ map: tex.front, emissive: 0xffffff, emissiveMap: tex.front, emissiveIntensity: 0.14 });
     const knit = (map) => lambert({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.08 });
     const headMats = [knit(tex.sideR), knit(tex.sideL), knit(tex.top), white, faceMat, knit(tex.back)];
     const headBox = new THREE.Mesh(new THREE.BoxGeometry(HEAD_W, HEAD_H, HEAD_D), headMats);
@@ -782,12 +784,12 @@ export class Chicken {
     let target = YAW[view.face] ?? 0;
     if (!view.hopping && view.idleFor > 0.55) target = 0;
     const turnRate = view.hopping ? 26 : 9;
-    this.yaw += angleDiff(this.yaw, target) * Math.min(1, turnRate * dt);
+    this.yaw += angleDiff(this.yaw, target) * (1 - Math.exp(-turnRate * dt));   // same feel at 30, 60 or 120 fps
     this.root.rotation.y = this.yaw;
 
     // the head leads the body when looking back at the camera
     const headTarget = !view.hopping && view.idleFor > 0.3 ? angleDiff(this.yaw, 0) : 0;
-    this.headYaw += (headTarget - this.headYaw) * Math.min(1, 14 * dt);
+    this.headYaw += (headTarget - this.headYaw) * (1 - Math.exp(-14 * dt));
     this.head.rotation.y = this.headYaw;
 
     // squash & stretch + hop pose
@@ -885,7 +887,7 @@ function buildStatic(lane, prev, next) {
   } else { // river: bed below, water surface is its own animated mesh
     ground.box(W, 0.3, 1, 0, base, 0, PAL.waterDeep, NO_BOTTOM);
     if (lane.pads) {
-      for (const x of lane.pads) {
+      for (const x of [...lane.pads, ...(lane.decorPads || [])]) {   // playable + scenery pads
         const v = ((x * 7919 + lane.row * 104729) % 1000) / 1000;
         props.box(0.8, 0.05, 0.8, x, PAD_TOP - 0.05, 0, vary(PAL.pad, v, 0.08), NO_BOTTOM);
         props.box(0.22, 0.052, 0.12, x + 0.22, PAD_TOP - 0.05, 0.25, PAL.padDark, NO_BOTTOM);

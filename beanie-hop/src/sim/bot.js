@@ -62,7 +62,7 @@ function value(g) {
 }
 
 function search(g, depth) {
-  if (depth === 0) return survives(g, 0.3) ? value(g) : -1e9;
+  if (depth === 0) return survives(g, 0.5) ? value(g) : -1e9;   // a plan must stay alive a beat longer than its last move
   let best = -1e9;
   for (const a of ACTIONS) {
     if (a === 'b' && depth < 2) continue;

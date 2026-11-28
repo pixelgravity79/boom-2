@@ -63,7 +63,7 @@ export class Chicken {
     this.head = new THREE.Group();
     this.head.position.set(0, LEG_H + BODY_H - 0.05, 0.02);
     for (const t of Object.values(tex)) { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; }
-    const faceMat = lambert({ map: tex.front, emissive: 0xffffff, emissiveMap: tex.front, emissiveIntensity: 0.2 });
+    const faceMat = lambert({ map: tex.front, emissive: 0xffffff, emissiveMap: tex.front, emissiveIntensity: 0.14 });
     const knit = (map) => lambert({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.08 });
     const headMats = [knit(tex.sideR), knit(tex.sideL), knit(tex.top), white, faceMat, knit(tex.back)];
     const headBox = new THREE.Mesh(new THREE.BoxGeometry(HEAD_W, HEAD_H, HEAD_D), headMats);
@@ -130,12 +130,12 @@ export class Chicken {
     let target = YAW[view.face] ?? 0;
     if (!view.hopping && view.idleFor > 0.55) target = 0;
     const turnRate = view.hopping ? 26 : 9;
-    this.yaw += angleDiff(this.yaw, target) * Math.min(1, turnRate * dt);
+    this.yaw += angleDiff(this.yaw, target) * (1 - Math.exp(-turnRate * dt));   // same feel at 30, 60 or 120 fps
     this.root.rotation.y = this.yaw;
 
     // the head leads the body when looking back at the camera
     const headTarget = !view.hopping && view.idleFor > 0.3 ? angleDiff(this.yaw, 0) : 0;
-    this.headYaw += (headTarget - this.headYaw) * Math.min(1, 14 * dt);
+    this.headYaw += (headTarget - this.headYaw) * (1 - Math.exp(-14 * dt));
     this.head.rotation.y = this.headYaw;
 
     // squash & stretch + hop pose

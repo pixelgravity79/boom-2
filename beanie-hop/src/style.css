@@ -20,6 +20,8 @@ body {
 #app { position: fixed; inset: 0; }
 #gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 #vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(20, 30, 10, 0.28) 100%); }
+#vignette.danger { animation: danger 0.9s ease-in-out infinite; }
+@keyframes danger { 50% { box-shadow: inset 0 0 70px 12px rgba(232, 66, 75, 0.55); } }
 .hidden { display: none !important; }
 button { font-family: var(--font); cursor: pointer; border: 0; touch-action: manipulation; }
 
@@ -89,4 +91,4 @@ button { font-family: var(--font); cursor: pointer; border: 0; touch-action: man
 #fps { position: absolute; left: 8px; bottom: 8px; font: 12px/1.2 ui-monospace, monospace; background: rgba(0, 0, 0, 0.6); padding: 4px 6px; border-radius: 6px; }
 #loading { position: absolute; inset: 0; display: grid; place-items: center; font-size: 28px; background: #7fc95c; transition: opacity 0.3s; }
 #loading.gone { opacity: 0; pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .logo, .play-hint, .ribbon { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .logo, .play-hint, .ribbon { animation: none; } #vignette.danger { animation: none; box-shadow: inset 0 0 60px 10px rgba(232, 66, 75, 0.45); } }

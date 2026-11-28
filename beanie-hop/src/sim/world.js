@@ -27,6 +27,7 @@ export function vehicleAt(lane, x, t, half = C.PLAYER_HALF) {
 export function landingSpot(lane, want, t) {
   if (lane.pads) {
     const col = Math.round(want);
+    if (col < C.COL_MIN || col > C.COL_MAX) return null; // scenery pads outside the playfield never hold you
     return lane.pads.has(col) && Math.abs(want - col) <= 0.5 ? { x: col, pad: col } : null;
   }
   let best = null;
@@ -35,7 +36,7 @@ export function landingSpot(lane, want, t) {
     const c = moverX(lane, m, t);
     const half = m.len / 2;
     const local = want - c;
-    if (Math.abs(local) > half + C.LOG_TOLERANCE - 0.2) continue;
+    if (Math.abs(local) > half + C.LOG_TOLERANCE) continue;
     const slot = clamp(Math.round(local + half - 0.5), 0, m.len - 1);
     const off = slot - half + 0.5;
     const d = Math.abs(local - off);
@@ -52,7 +53,7 @@ export function trainState(lane, t) {
   for (const kk of [k, k + 1]) {
     if (kk < 0) continue;
     const local = t - (tr.phase + kk * tr.period);
-    if (local >= -C.TRAIN_WARN && local < tr.pass) res.warn = true;
+    if (local >= -(tr.warn || C.TRAIN_WARN) && local < tr.pass) res.warn = true;
     if (local >= 0 && local < tr.pass) {
       res.active = true;
       res.head = -lane.dir * C.TRAIN_START + lane.dir * tr.speed * local;
@@ -80,6 +81,7 @@ export class World {
     this.pathCol = 0;
     this.segType = 'grass';
     this.segLeft = 0;
+    this.hazRun = 0;     // consecutive dangerous rows generated so far
     this.prev = null;
     this.roadDir = this.rng.chance(0.5) ? 1 : -1;
     this.riverDir = this.rng.chance(0.5) ? 1 : -1;
@@ -107,19 +109,21 @@ export class World {
     if (row <= C.START_SAFE_ROWS) return 'grass';
     if (this.segLeft > 0) { this.segLeft--; return this.segType; }
     const R = this.rng, d = C.difficulty(row);
+    const budget = C.hazardCap(row) - this.hazRun;   // dangerous rows still allowed before a breather
     let type, len;
-    if (this.segType !== 'grass' && R.chance(0.78 - 0.33 * d)) {
+    if (this.segType !== 'grass' && (budget <= 0 || R.chance(0.78 - 0.33 * d))) {
       type = 'grass';
       len = R.int(1, d < 0.45 ? 3 : 2);
     } else {
       const opts = [['road', 0.5 + 0.05 * d]];
       if (row > 9) opts.push(['river', 0.3]);
-      if (row > 16) opts.push(['rail', 0.17 + 0.05 * d]);
+      if (row > 18) opts.push(['rail', 0.17 + 0.05 * d]);
       const filtered = opts.filter((o) => o[0] !== this.segType);
       type = R.weighted(filtered.length ? filtered : opts);
       len = type === 'road' ? R.int(1, 2 + Math.round(3 * d))
-        : type === 'river' ? R.int(1, 2 + Math.round(2 * d))
+        : type === 'river' ? R.int(1, Math.min(C.MAX_RIVER_RUN, 2 + Math.round(2 * d)))
         : R.int(1, d > 0.35 ? 2 : 1);
+      len = Math.max(1, Math.min(len, budget));
     }
     this.segType = type;
     this.segLeft = len - 1;
@@ -131,8 +135,9 @@ export class World {
     const lane = {
       row, type, d: C.difficulty(row),
       blocked: new Set(), decor: [], movers: [], dir: 1, speed: 0,
-      pads: null, train: null, coins: [], path: this.pathCol,
+      pads: null, decorPads: null, train: null, coins: [], path: this.pathCol,
     };
+    this.hazRun = type === 'grass' ? 0 : this.hazRun + 1;
     if (type === 'grass') this.genGrass(lane);
     else if (type === 'road') this.genRoad(lane);
     else if (type === 'river') this.genRiver(lane);
@@ -164,6 +169,7 @@ export class World {
     for (let x = C.COL_MIN; x <= C.COL_MAX; x++) {
       if (keep.has(x)) continue;
       if (row >= 0 && row <= 1 && Math.abs(x) <= 1) continue;
+      if (row >= 0 && row <= C.START_SAFE_ROWS && x === 0) continue;
       if (R.chance(density)) add(x, scenery());
     }
     // never wall off more than 5 of the 9 columns
@@ -190,8 +196,9 @@ export class World {
     if (R.chance(0.7)) this.roadDir = -this.roadDir;
     lane.dir = this.roadDir;
     let speed = lerp(1.65, 3.7, d) * R.range(0.85, 1.2);
-    if (R.chance(0.08 + 0.1 * d)) speed *= 1.45; // the occasional speedster lane
-    lane.speed = speed;
+    if (lane.row >= 20 && R.chance(0.08 + 0.1 * d)) speed *= 1.45; // the occasional speedster lane
+    lane.speed = Math.min(speed, C.MAX_CAR_SPEED);
+    speed = lane.speed;
     const truckLane = R.chance(0.25 + 0.2 * d);
     const minGap = 2 * C.PLAYER_HALF + speed * lerp(0.62, 0.4, d) + 0.55;
     const maxGap = minGap + lerp(6.5, 3.2, d);
@@ -212,12 +219,13 @@ export class World {
   genRiver(lane) {
     const R = this.rng, d = lane.d;
     const prevRiver = this.prev && this.prev.type === 'river';
-    if (R.chance(lerp(0.32, 0.16, d)) && !(prevRiver && this.prev.pads)) {
+    if (R.chance(lerp(0.38, 0.18, d)) && !(prevRiver && this.prev.pads)) {
       lane.pads = new Set([this.pathCol]);
       const extra = R.int(1, 3);
       for (let i = 0; i < extra; i++) lane.pads.add(R.int(C.COL_MIN, C.COL_MAX));
-      for (let x = -C.DECOR_HALF; x <= C.DECOR_HALF; x++) { // scenery pads outside the playfield
-        if ((x < C.COL_MIN || x > C.COL_MAX) && R.chance(0.15)) lane.pads.add(x);
+      lane.decorPads = new Set();
+      for (let x = -C.DECOR_HALF; x <= C.DECOR_HALF; x++) { // scenery only: drawn, never landed on
+        if ((x < C.COL_MIN || x > C.COL_MAX) && R.chance(0.15)) lane.decorPads.add(x);
       }
       lane.speed = 0;
       return;
@@ -258,8 +266,8 @@ export class World {
     const cars = R.int(2, 4);
     const speed = R.range(24, 30);
     const len = 3.4 + cars * 3.3;
-    const period = R.range(lerp(8.5, 5.2, d), lerp(13, 8, d));
-    lane.train = { cars, speed, len, period, phase: R.range(0.6, period), pass: (2 * C.TRAIN_START + len) / speed };
+    const period = R.range(lerp(10, 6.5, d), lerp(14, 9, d));
+    lane.train = { cars, speed, len, period, phase: R.range(0.6, period), pass: (2 * C.TRAIN_START + len) / speed, warn: C.trainWarn(d) };
     if (R.chance(0.05)) lane.coins.push(R.int(C.COL_MIN, C.COL_MAX));
   }
 }

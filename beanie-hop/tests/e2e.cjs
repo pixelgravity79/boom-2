@@ -128,6 +128,16 @@ const chickenOnScreen = (page) => page.evaluate(() => {
       const s = await page.evaluate(() => ({ mode: BeanieHop.mode, r: BeanieHop.game.p.r, score: BeanieHop.game.score }));
       assert(s.mode === 'play' && s.r === 0 && s.score === 0, JSON.stringify(s));
     });
+    await check('standing still: the eagle warning shows before the eagle strikes', async () => {
+      await page.evaluate(() => { BeanieHop.restart(21); BeanieHop.move('f'); BeanieHop.timeScale(6); });
+      await page.waitForFunction(() => document.getElementById('vignette').classList.contains('danger') || BeanieHop.mode !== 'play', null, { timeout: 15000 });
+      const s = await page.evaluate(() => ({ mode: BeanieHop.mode, danger: document.getElementById('vignette').classList.contains('danger') }));
+      assert(s.mode === 'play' && s.danger, 'no warning before: ' + JSON.stringify(s));
+      await page.waitForFunction(() => BeanieHop.game.death, null, { timeout: 15000 });
+      const d = await page.evaluate(() => ({ kind: BeanieHop.game.death.kind, danger: document.getElementById('vignette').classList.contains('danger') }));
+      await page.evaluate(() => BeanieHop.timeScale(1));
+      assert(d.kind === 'eagle' && !d.danger, JSON.stringify(d));
+    });
     await check('draw calls stay modest', async () => {
       const calls = await page.evaluate(() => BeanieHop.renderer.gl.info.render.calls);
       assert(calls < 400, 'draw calls ' + calls);

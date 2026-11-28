@@ -66,13 +66,14 @@ async function start(hot = {}) {
     acc = 0; newBestShown = false; runStartBest = save.best; overTimer = 0;
     trainActive.clear();
     sound.setBell(false);
+    ui.danger(false);
     if (play) { mode = 'play'; ui.show('play'); ui.hud(0, save.best, 0); }
     else { mode = 'title'; ui.title(save); }
   }
 
   function pause() {
     if (mode !== 'play') return;
-    mode = 'pause'; ui.show('pause'); sound.setBell(false);
+    mode = 'pause'; ui.show('pause'); sound.setBell(false); game.queue.length = 0;
   }
   function resume() {
     if (mode !== 'pause') return;
@@ -104,18 +105,20 @@ async function start(hot = {}) {
   window.addEventListener('orientationchange', () => setTimeout(() => renderer.resize(), 200));
 
   function handleEvents() {
-    for (const e of game.events) {
+    const events = game.drainEvents();
+    for (const e of events) {
       if (mode === 'play' || mode === 'over') {
         if (e.type === 'hop') sound.hop();
         else if (e.type === 'land') sound.land(e.lane);
         else if (e.type === 'bump') sound.bump();
         else if (e.type === 'coin') sound.coin();
         else if (e.type === 'score' && !newBestShown && runStartBest > 0 && e.score > runStartBest) { newBestShown = true; ui.toast('NEW BEST!'); sound.best(); }
-        else if (e.type === 'death') onDeath(e.kind);
+        else if (e.type === 'eagleWarn') { ui.danger(true); sound.eagleWarn(); }
+        else if (e.type === 'eagleWarnEnd') ui.danger(false);
+        else if (e.type === 'death') { ui.danger(false); onDeath(e.kind); }
       }
     }
-    renderer.effects(game, game.events);
-    game.events.length = 0;
+    renderer.effects(game, events);
   }
 
   function onDeath(kind) {

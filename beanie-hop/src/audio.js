@@ -98,6 +98,7 @@ export class Sound {
     for (const f of [311, 370, 466]) this.tone({ type: 'sawtooth', f0: f, dur: 0.7, vol: 0.035, attack: 0.04 });
     this.noise({ dur: 1.1, vol: 0.18, type: 'bandpass', f0: 300, f1: 900, q: 0.7, at: 0.15 });
   }
+  eagleWarn() { this.tone({ type: 'sawtooth', f0: 1700, f1: 1250, dur: 0.45, vol: 0.022, vib: 70 }); }
   eagle() { this.tone({ type: 'sawtooth', f0: 2100, f1: 1300, dur: 0.55, vol: 0.06, vib: 90 }); this.squawk(0.5); }
   best() { [523, 659, 784, 1047].forEach((f, i) => this.tone({ type: 'square', f0: f, dur: 0.14, vol: 0.06, at: i * 0.09 })); }
   gameOver() { [392, 330, 262].forEach((f, i) => this.tone({ type: 'triangle', f0: f, dur: 0.22, vol: 0.1, at: 0.25 + i * 0.16 })); }

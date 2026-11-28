@@ -9,11 +9,11 @@ const ICONS = {
 };
 
 const DEATHS = {
-  car: { title: 'SPLAT!', quips: ['Should have looked both ways.', 'Flat as a pancake. A very handsome pancake.', 'That car did not brake for poultry.', 'Squashed. The beanie survived, at least.'] },
-  train: { title: 'TOOT TOOT!', quips: ['That train had places to be.', 'The bells were ringing for a reason.', 'Next stop: the great coop in the sky.'] },
-  splash: { title: 'SPLASH!', quips: ["Can't swim. Never could.", 'Chickens and rivers: not friends.', 'That was a puddle with ambitions.'] },
-  swept: { title: 'SWEPT AWAY!', quips: ['Rode that log a bit too long.', 'Off to see the ocean, apparently.', 'Should have hopped off sooner.'] },
-  eagle: { title: 'SNATCHED!', quips: ['Too slow! The eagle was hungry.', 'Standing still is not a strategy.', 'Air mail, one chicken.'] },
+  car: { title: 'SPLAT!', quips: ['Should have looked both ways.', 'Bro did NOT look both ways.', 'Flat as a pancake. A very handsome pancake.', 'That car did not brake for poultry.', 'Squashed. The beanie survived, at least.', 'Certified poultry moment.'] },
+  train: { title: 'TOOT TOOT!', quips: ['That train had places to be.', 'The bells were ringing for a reason.', 'Next stop: the great coop in the sky.', 'He really thought he had that.'] },
+  splash: { title: 'SPLASH!', quips: ["Can't swim. Never could.", 'Chickens and rivers: not friends.', 'The beanie is not waterproof.', 'One more hop, he said.'] },
+  swept: { title: 'SWEPT AWAY!', quips: ['Rode that log a bit too long.', 'Off to see the ocean, apparently.', 'He has left the premises.'] },
+  eagle: { title: 'SNATCHED!', quips: ['Too slow! The eagle was hungry.', 'Standing still is not a strategy.', 'Air mail, one chicken.', 'Unexpected business trip.'] },
 };
 
 export class UI {
@@ -84,6 +84,8 @@ export class UI {
     card.className = 'card over-card dead-' + (kind === 'swept' ? 'splash' : kind);
     this.show('over');
   }
+
+  danger(on) { document.getElementById('vignette').classList.toggle('danger', on); }
 
   fps(text) { this.el.fps.classList.remove('hidden'); this.el.fps.textContent = text; }
 }

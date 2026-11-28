@@ -39,7 +39,7 @@ function buildStatic(lane, prev, next) {
   } else { // river: bed below, water surface is its own animated mesh
     ground.box(W, 0.3, 1, 0, base, 0, PAL.waterDeep, NO_BOTTOM);
     if (lane.pads) {
-      for (const x of lane.pads) {
+      for (const x of [...lane.pads, ...(lane.decorPads || [])]) {   // playable + scenery pads
         const v = ((x * 7919 + lane.row * 104729) % 1000) / 1000;
         props.box(0.8, 0.05, 0.8, x, PAD_TOP - 0.05, 0, vary(PAL.pad, v, 0.08), NO_BOTTOM);
         props.box(0.22, 0.052, 0.12, x + 0.22, PAD_TOP - 0.05, 0.25, PAL.padDark, NO_BOTTOM);

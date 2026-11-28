@@ -112,7 +112,7 @@ export function addProp(b, kind, x, v, z = 0, tall = false) {
   const jitter = (v - 0.5) * 0.12;
   switch (kind) {
     case 'tree': {
-      const h = tall ? 0.7 + v * 1.1 : [0.5, 0.72, 0.95][Math.floor(v * 3) % 3];
+      const h = tall ? 0.7 + v * 1.1 : [0.45, 0.62, 0.8][Math.floor(v * 3) % 3];   // kept short in play so they never hide the chicken
       const leaf = vary(PAL.leaf[Math.floor(v * 7) % PAL.leaf.length], v, 0.05);
       b.box(0.28, 0.3, 0.28, x, 0, z, PAL.trunk, NO_BOTTOM);
       b.box(0.8, h, 0.8, x + jitter * 0.3, 0.3, z, leaf);
