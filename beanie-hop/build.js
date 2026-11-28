@@ -28,4 +28,14 @@ html = html.replace('<!--STYLE-->', () => `<style>\n${css}</style>`).replace('<!
 if (html.includes('<!--STYLE-->') || html.includes('<!--SCRIPT-->')) throw new Error('template placeholders left');
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 fs.writeFileSync(path.join(root, 'dist/index.html'), html);
-console.log(`dist/index.html  ${(Buffer.byteLength(html) / 1024).toFixed(0)} KB${dev ? ' (dev)' : ''}`);
+
+// dist/artifact.html: the same page without the html/head/body skeleton, for hosts that add their own
+// (claude.ai artifacts). Keeps the title, font links, styles, markup and script.
+const head = html.match(/<head>([\s\S]*?)<\/head>/)[1];
+const keep = head.split('\n').filter((l) => /<title>|fonts\.g|rel="preconnect"/.test(l));
+const style = head.match(/<style>[\s\S]*?<\/style>/)[0];
+const body = html.match(/<body>([\s\S]*)<\/body>/)[1];
+const artifact = [...keep, '<meta name="claude:viewport-fit-sides" content="cover">', style, body.trim()].join('\n') + '\n';
+fs.writeFileSync(path.join(root, 'dist/artifact.html'), artifact);
+const kb = (t) => (Buffer.byteLength(t) / 1024).toFixed(0) + ' KB';
+console.log(`dist/index.html     ${kb(html)}${dev ? ' (dev)' : ''}\ndist/artifact.html  ${kb(artifact)}`);

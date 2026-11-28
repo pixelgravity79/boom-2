@@ -27,9 +27,12 @@ async function loadTextures() {
   return { front, sideL, sideR, back, top };
 }
 
-async function start() {
+async function start(hot = {}) {
   const canvas = document.getElementById('gl');
   const save = store.load();
+  if (hot && hot.save && typeof hot.save === 'object') { // carried over a republish of the page
+    for (const k of ['best', 'corn', 'games', 'hops']) if (Number.isFinite(hot.save[k])) save[k] = Math.max(save[k], hot.save[k]);
+  }
   const sound = new Sound();
   sound.sfxOn = save.sfx; sound.musicOn = save.music;
 
@@ -212,6 +215,9 @@ async function start() {
     restart: (seed) => { if (seed !== undefined) params.set('seed', seed); newGame(true); },
     save: () => ({ ...save }),
   };
+  try { window.claude?.hot?.snapshot?.(() => ({ save: { ...save } })); } catch { /* not hosted on claude.ai */ }
 }
 
-start();
+const boot = (data) => start(data || {});
+if (window.claude?.hot?.ready) window.claude.hot.ready(boot);
+else boot(window.claude?.hot?.data ?? {});

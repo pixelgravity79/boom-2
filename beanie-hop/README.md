@@ -4,7 +4,7 @@ An original voxel lane-hopping game for phone and desktop browsers. A chicken wh
 
 This is a separate project from Flappy Fellas, which is in the repo root. Nothing outside `beanie-hop/` belongs to this game.
 
-**Status: playable.** Build it with `node build.js`, then open `dist/index.html`. It's one self-contained file that works offline or from any web host. See `collab/STATUS.md` for details.
+**Status: playable.** Published privately on claude.ai: https://claude.ai/artifact/VxvTRtJ4oRTmoPAramvLPV (share it from the page's Share menu). Build it with `node build.js`, then open `dist/index.html`. It's one self-contained file that works offline or from any web host. See `collab/STATUS.md` for details.
 
 **Controls:**
 - Tap or swipe down hops toward you. Swipe left or right steps sideways, and swipe up hops back.
@@ -21,6 +21,7 @@ npm run feedback       # read their replies (pasted files and pushed collab/<nam
 npm run ask:gemini     # send Gemini its message through the API and save the reply
 npm run build          # -> dist/index.html
 npm run test:e2e       # browser tests: iPhone, Pixel, iPad, desktop
+node tests/e2e.cjs artifact   # same tests on dist/artifact.html, the published variant
 ```
 
 ## Layout

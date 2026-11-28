@@ -3,7 +3,20 @@
 const { chromium, devices } = require('playwright');
 const path = require('path');
 
-const URL = 'file://' + path.resolve(__dirname, '../dist/index.html');
+const fs = require('fs');
+const os = require('os');
+// `node tests/e2e.cjs artifact` tests dist/artifact.html wrapped the way claude.ai wraps a published page
+let URL = 'file://' + path.resolve(__dirname, '../dist/index.html');
+if (process.argv.includes('artifact')) {
+  const inner = fs.readFileSync(path.resolve(__dirname, '../dist/artifact.html'), 'utf8');
+  const wrapped = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' +
+    '<style>:root{color-scheme:light;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>' +
+    '</head><body>' + inner + '</body></html>';
+  const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'beanie-art-')), 'index.html');
+  fs.writeFileSync(f, wrapped);
+  URL = 'file://' + f;
+  console.log('testing the artifact variant (host-style wrapper)');
+}
 const ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 let pass = 0, fail = 0;
 const assert = (c, m) => { if (!c) throw new Error(m); };
