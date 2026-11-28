@@ -1,0 +1,84 @@
+{
+  "project": "Beanie Hop",
+  "repo": "https://github.com/pixelgravity79/boom-2",
+  "branch": "ccr-436599e2-f8j3sd",
+  "folder": "beanie-hop",
+  "round": 1,
+  "collaborators": [
+    {
+      "id": "chatgpt",
+      "name": "ChatGPT",
+      "requested": "GPT-6, High Effort, regular chat mode (chosen in the ChatGPT app; not verifiable from here)",
+      "role": "Architecture, advanced reasoning, code review, debugging, gameplay improvements, creative direction",
+      "delivery": "paste",
+      "files": [
+        "collab/STATUS.md",
+        "src/sim/config.js",
+        "src/sim/rng.js",
+        "src/sim/world.js",
+        "src/sim/game.js",
+        "src/sim/bot.js",
+        "tests/sim.test.js",
+        "src/render/chicken.js"
+      ],
+      "asks": [
+        "Review the simulation architecture (src/sim): is the split between pure rules and rendering sound, and is anything going to hurt us once the renderer, input and UI are attached?",
+        "Hunt for logic bugs in game.js and world.js: hop/landing on logs and lily pads, collisions mid-hop, the camera creep and eagle, the input buffer. Point at exact lines.",
+        "Challenge the big design decision in STATUS.md: the chicken hops TOWARD the camera (down the screen) so the man's face is always visible. Is there a better way to keep the face visible? Argue for or against it.",
+        "Difficulty curve: look at difficulty(), the lane mix and the speeds/gaps in world.js. Suggest concrete number changes for the first 60 seconds of play and for row 150+.",
+        "Creative direction: game-over lines, a better title than 'Beanie Hop' if you have one, and one or two replayability ideas that fit the photo-face concept."
+      ]
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini",
+      "requested": "Gemini Neon 4 High in Antigravity (chosen in Antigravity; not verifiable from here)",
+      "role": "Visual design, graphics, animation, performance optimisation, independent testing",
+      "delivery": "repo",
+      "files": [
+        "collab/STATUS.md",
+        "tools/make_face.py",
+        "src/render/voxel.js",
+        "src/render/models.js",
+        "src/render/chicken.js",
+        "src/render/lanes.js",
+        "src/render/particles.js"
+      ],
+      "attach": [
+        "assets/head_front.webp",
+        "assets/head_side_r.webp",
+        "assets/head_top.webp",
+        "assets/portrait.webp"
+      ],
+      "asks": [
+        "Face integration: look at assets/head_front.webp and src/render/chicken.js. Does the face read as part of the chicken's head rather than a picture stuck on it? Give specific changes (mask edge, shading, head proportions, beak/comb/wattle placement, emissive level).",
+        "Check tools/make_face.py's colour grade and crop. Is the man still clearly recognisable at about 40 CSS pixels wide on a phone? What would you change?",
+        "Palette and models (models.js, lanes.js): does the world look cohesive and readable at a glance (cars vs logs vs trains vs safe grass)? Name the exact PAL colours or model sizes you would change.",
+        "Animation: the hop, squash-and-stretch, wing flap, idle and death poses in chicken.js. What would make them feel better?",
+        "Mobile performance: draw calls, shadow cost, materials, the instanced particles, the edgeShade shader patch. What will hurt on a mid-range Android phone?"
+      ]
+    },
+    {
+      "id": "grok",
+      "name": "Grok",
+      "requested": "Grok in Cursor, 4.7 Expert (chosen in Cursor; not verifiable from here)",
+      "role": "Gameplay mechanics, code optimisation, edge-case detection, independent technical review",
+      "delivery": "repo",
+      "files": [
+        "collab/STATUS.md",
+        "src/sim/config.js",
+        "src/sim/world.js",
+        "src/sim/game.js",
+        "src/sim/bot.js",
+        "tests/sim.test.js"
+      ],
+      "asks": [
+        "Find edge cases that break or cheat the rules: hopping off a log at the playfield edge, sideways hops on logs, landing exactly on a log's end, bumping while riding a log, trains arriving mid-hop, inputs queued at the moment of death, going backwards past the camera.",
+        "Find any seed and row where the level is impossible or unfair (use the generator and the bot; tests/sim.test.js shows how). Give the seed and row so it can be reproduced.",
+        "Write at least two new failing tests in the style of tests/sim.test.js for any bug you find (paste them in your reply).",
+        "Optimisation: anything in step(), landingSpot(), vehicleAt() or the bot that is wasteful at 120 steps per second on a phone?",
+        "Mechanics: are HOP_TIME, the input buffer (QUEUE_MAX), LOG_TOLERANCE, EAGLE_MARGIN and autoScroll() tuned well for touch controls? Propose values with reasons."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "beanie-hop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A voxel road-hopping game starring a chicken with a real face.",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/sim.test.js && node tests/collab.test.js",
+    "test:quick": "node tests/sim.test.js --quick && node tests/collab.test.js",
+    "handoff": "node tools/make_handoff.mjs",
+    "feedback": "node tools/read_feedback.mjs --fetch"
+  },
+  "dependencies": {
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.0"
+  }
+}
